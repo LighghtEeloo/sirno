@@ -32,6 +32,17 @@ Prefer direct definitions over defensive framing.
 - Avoid prose that reads like a rebuttal, disclaimer, or argument with an imaginary reviewer.
 - When documenting a constraint, state the positive rule first, then the consequence if needed.
 
+When writing DESIGN.md, follow these style guidelines:
+- Declarative, dry, precise.
+- Each paragraph does one thing: introduces a concept, states its properties, and stops.
+- No motivational framing, no rhetoric, no "this is important because."
+- Terms are introduced once and then trusted to carry themselves.
+- The voice is impersonal but not bureaucratic so that it reads closer to
+  a concise mathematical text than to a software README.
+- Sentences are structurally simple, favoring short main clauses over nested subordination.
+- Analogies appear sparingly and only to established PL concepts (well-typedness, nominal binding),
+  never to everyday metaphors.
+
 ### Canonical Documentation Location
 
 - Prefer inline Rust documentation in `src/**/*.rs`.
@@ -43,11 +54,6 @@ Prefer direct definitions over defensive framing.
 Fail fast. If some edge case is not specified by design,
 just log the error and stop the current operation.
 Never attempt to recover from error path if it's not absolutely correct.
-
-When a delete operation removes a resource, delete all of its associated artifacts and state
-files. Partial cleanup leaves stale entries that confuse subsequent operations and corrupt
-runtime invariants (e.g., `multorum worker delete` removes both the Git worktree and the
-worker state TOML file).
 
 Prefer declaration instead of manual implementation. For example,
 - Utilize `thiserror` crate for error messages instead of manual implementations.
