@@ -45,7 +45,7 @@ pub struct Entry {
     /// Unique nominal identifier. Immutable after construction.
     id: EntryId,
     /// Optional human-readable concept name.
-    name: Option<Box<str>>,
+    name: Option<SmolStr>,
     /// Concise summary of the entry's claim.
     description: String,
     /// Full account of the entry's content, rationale, and context.
@@ -61,7 +61,7 @@ impl Entry {
     }
 
     /// Attach an optional human-readable name.
-    pub fn with_name(mut self, name: impl Into<Box<str>>) -> Self {
+    pub fn with_name(mut self, name: impl Into<SmolStr>) -> Self {
         self.name = Some(name.into());
         self
     }
@@ -83,7 +83,7 @@ impl Entry {
     }
 
     /// Replace the human-readable name.
-    pub fn set_name(&mut self, name: Option<Box<str>>) {
+    pub fn set_name(&mut self, name: Option<SmolStr>) {
         self.name = name;
     }
 

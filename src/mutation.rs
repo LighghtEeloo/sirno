@@ -5,6 +5,8 @@
 //! whether the graph or the codebase is treated as authoritative for a given
 //! entry.
 
+use smol_str::SmolStr;
+
 use crate::edge::{Affinity, Dependency};
 use crate::entry::{Entry, EntryId};
 use crate::grounding::Grounding;
@@ -48,7 +50,7 @@ pub enum Mutation {
     /// Update an entry's mutable fields.
     UpdateEntry {
         id: EntryId,
-        name: FieldUpdate<Box<str>>,
+        name: FieldUpdate<SmolStr>,
         description: FieldUpdate<String>,
         explanation: FieldUpdate<String>,
     },
