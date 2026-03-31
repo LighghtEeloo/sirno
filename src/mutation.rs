@@ -1,0 +1,93 @@
+//! Mutations, patches, and polarity.
+//!
+//! A mutation is a single atomic change to the graph. A patch is the ordered
+//! sequence of mutations accumulated during a session. Polarity determines
+//! whether the graph or the codebase is treated as authoritative for a given
+//! entry.
+
+use crate::edge::{Affinity, Dependency};
+use crate::entry::{Entry, EntryId};
+use crate::grounding::Grounding;
+
+/// Direction of authority for an entry during a session.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Polarity {
+    /// The graph is authoritative; the agent rewrites code to match.
+    Actualization,
+    /// The codebase is authoritative; the agent updates the entry to match.
+    Reflection,
+}
+
+/// A single atomic change to the graph.
+#[derive(Clone, Debug)]
+pub enum Mutation {
+    /// Create a new entry.
+    CreateEntry(Entry),
+    /// Remove an entry and all its edges, groundings, and locks.
+    RemoveEntry(EntryId),
+    /// Update an entry's mutable fields.
+    UpdateEntry {
+        id: EntryId,
+        name: Option<Option<Box<str>>>,
+        description: Option<String>,
+        explanation: Option<String>,
+    },
+    /// Add a dependency edge.
+    AddDependency(Dependency),
+    /// Remove a dependency edge.
+    RemoveDependency(Dependency),
+    /// Add an affinity edge.
+    AddAffinity(Affinity),
+    /// Remove an affinity edge.
+    RemoveAffinity(Affinity),
+    /// Attach a grounding to an entry.
+    AddGrounding { entry: EntryId, grounding: Grounding },
+    /// Lock an entry.
+    Lock(EntryId),
+    /// Unlock an entry.
+    Unlock(EntryId),
+}
+
+/// Argument for why a mutation to a locked entry is necessary.
+///
+/// Submitted to a reviewer who grants or withholds approval.
+#[derive(Clone, Debug)]
+pub struct Justification {
+    /// The locked entry that the agent wants to mutate.
+    pub entry: EntryId,
+    /// The proposed mutation.
+    pub mutation: Box<Mutation>,
+    /// The agent's argument for the change.
+    pub argument: String,
+}
+
+/// Ordered sequence of mutations accumulated during a session.
+///
+/// Order matters: later mutations may depend on earlier ones (e.g., create
+/// an entry, then add an edge to it).
+#[derive(Clone, Debug, Default)]
+pub struct Patch {
+    mutations: Vec<Mutation>,
+}
+
+impl Patch {
+    /// Construct an empty patch.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Append a mutation.
+    pub fn push(&mut self, mutation: Mutation) {
+        self.mutations.push(mutation);
+    }
+
+    /// The mutations in application order.
+    pub fn mutations(&self) -> &[Mutation] {
+        &self.mutations
+    }
+
+    /// Whether the patch contains no mutations.
+    pub fn is_empty(&self) -> bool {
+        self.mutations.is_empty()
+    }
+}
