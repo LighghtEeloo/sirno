@@ -18,6 +18,26 @@ pub enum Polarity {
     Reflection,
 }
 
+/// Describes what to do with a field during an update.
+///
+/// Replaces `Option<Option<T>>` with explicit intent: leave the field
+/// alone, set it to a new value, or clear it (for optional fields).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum FieldUpdate<T> {
+    /// Leave the field unchanged.
+    Unchanged,
+    /// Set the field to a new value.
+    Set(T),
+    /// Clear the field (meaningful only for optional fields).
+    Clear,
+}
+
+impl<T> Default for FieldUpdate<T> {
+    fn default() -> Self {
+        Self::Unchanged
+    }
+}
+
 /// A single atomic change to the graph.
 #[derive(Clone, Debug)]
 pub enum Mutation {
@@ -28,9 +48,9 @@ pub enum Mutation {
     /// Update an entry's mutable fields.
     UpdateEntry {
         id: EntryId,
-        name: Option<Option<Box<str>>>,
-        description: Option<String>,
-        explanation: Option<String>,
+        name: FieldUpdate<Box<str>>,
+        description: FieldUpdate<String>,
+        explanation: FieldUpdate<String>,
     },
     /// Add a dependency edge.
     AddDependency(Dependency),
