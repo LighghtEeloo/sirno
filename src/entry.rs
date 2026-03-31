@@ -4,16 +4,23 @@
 //! a design decision, a module's purpose, a data representation choice, or
 //! any other isolable piece of understanding.
 
+use smol_str::SmolStr;
+
 /// Unique, agent-assigned nominal identifier for an entry.
 ///
 /// Opaque by construction: the inner representation is not exposed.
 /// Two entries are the same entry if and only if their ids are equal.
+///
+/// Note: uses `SmolStr` internally. Identifiers ≤ 22 bytes are stored
+/// inline, avoiding heap allocation and making clones a memcpy. This
+/// matters because entry ids are the most-cloned value in the system
+/// (HashMap keys, edge storage, mutation records).
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct EntryId(Box<str>);
+pub struct EntryId(SmolStr);
 
 impl EntryId {
     /// Create an entry id from any string-like value.
-    pub fn new(id: impl Into<Box<str>>) -> Self {
+    pub fn new(id: impl Into<SmolStr>) -> Self {
         Self(id.into())
     }
 
