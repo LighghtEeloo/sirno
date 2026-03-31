@@ -93,7 +93,23 @@ A patch is the accumulated record of all proposed mutations during a session. It
 
 ### Session
 
-A session is the working interval between two checkpoints. During a session, an agent operates against the current checkpoint as a frozen base, overlaid with its in-progress patch. The working state is visible only to the active session; other observers see the last checkpoint.
+A session is the working interval between two checkpoints. It maintains a mutable working copy of the base graph. All mutations during the interval flow through the session, which applies each mutation to the working copy, records it in the patch, and generates obligations when entry content changes. The working state is visible only to the active session; other observers see the last checkpoint.
+
+Only entry-content mutations (updates to an entry's name, description, or explanation, and entry removal) generate obligations. Structural mutations (edge changes, grounding attachments, lock state) do not. When an entry is removed, its dependents are captured before the removal deletes the associated edges.
+
+The session tracks which entries have been examined during obligation discharge as a *visited set*. When a discharge generates obligations on an already-visited entry, the obligation is still created — the entry may need re-examination in a cycle — but the visited set allows the agent to detect re-entry and adjust its strategy. The session provides this state; it does not impose traversal order. The agent drives the iteration.
+
+### Discharge
+
+An agent discharges an obligation through one of four operations:
+
+- *Confirm*: the target entry remains valid. The obligation is marked discharged; the target is added to the visited set.
+
+- *Resolve*: the target entry requires an update. The update is applied through the normal mutation path, which may generate further obligations on its dependents. The obligation is marked discharged; the target is added to the visited set.
+
+- *Justify*: the target entry requires an update but is locked. The agent submits a justification (the proposed mutation and an argument). The obligation transitions to awaiting approval.
+
+- *Approve*: an external reviewer grants approval for a justified mutation. The deferred mutation is applied, generating further obligations as usual. The obligation is marked discharged; the target is added to the visited set. The lock is not rechecked — the approval is the authorization.
 
 ### Commit
 
@@ -103,7 +119,7 @@ A patch is promoted to a new checkpoint (committed) when it satisfies two condit
 
 - *Approval-completeness* requires that every mutation to a locked entry within the patch has received reviewer approval.
 
-A patch that is obligation-complete but has pending approvals cannot be committed. A patch with all approvals but unresolved obligations cannot be committed. Both conditions must hold simultaneously.
+Both conditions must hold simultaneously.
 
 ---
 

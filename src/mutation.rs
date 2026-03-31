@@ -69,20 +69,6 @@ pub enum Mutation {
     /// Unlock an entry.
     Unlock(EntryId),
 }
-
-/// Argument for why a mutation to a locked entry is necessary.
-///
-/// Submitted to a reviewer who grants or withholds approval.
-#[derive(Clone, Debug)]
-pub struct Justification {
-    /// The locked entry that the agent wants to mutate.
-    pub entry: EntryId,
-    /// The proposed mutation.
-    pub mutation: Box<Mutation>,
-    /// The agent's argument for the change.
-    pub argument: String,
-}
-
 /// Ordered sequence of mutations accumulated during a session.
 ///
 /// Order matters: later mutations may depend on earlier ones (e.g., create
