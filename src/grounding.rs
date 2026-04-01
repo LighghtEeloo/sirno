@@ -3,6 +3,10 @@
 //! Groundings are the interpretation function from the abstract knowledge
 //! graph into concrete syntax. Two mechanisms are provided: heuristic
 //! search (grep) and nominal anchor (telescope).
+//!
+//! Validation is stratified. Structural validation checks invariants encoded
+//! in the graph itself. Repository-backed validators may then inspect source
+//! text to confirm that a grounding still resolves in code.
 
 use crate::entry::EntryId;
 
@@ -30,6 +34,10 @@ impl Grounding {
 ///
 /// Callers that can inspect the codebase should implement this trait and
 /// enforce project-specific grounding checks during commit.
+///
+/// A validator may be exact for some grounding kinds and advisory for others.
+/// Unsupported heuristic checks should be surfaced explicitly, for example as
+/// warnings, rather than silently treated as success.
 pub trait GroundingValidator {
     /// Validate one grounding attached to `entry`.
     fn validate(
@@ -40,8 +48,8 @@ pub trait GroundingValidator {
 /// Baseline grounding validator that checks only graph-internal invariants.
 ///
 /// Note: this validator does not inspect source files. It is sufficient for
-/// tests and for invariants encoded directly in the graph, but it does not
-/// prove that a grounding still locates the intended code.
+/// tests, graph construction, and invariants encoded directly in the graph,
+/// but it does not prove that a grounding still locates the intended code.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct StructuralGroundingValidator;
 
@@ -54,6 +62,9 @@ impl GroundingValidator for StructuralGroundingValidator {
 }
 
 /// Failure reported while validating a grounding.
+///
+/// The variants cover both graph-internal failures and repository-backed
+/// validation failures.
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 pub enum GroundingValidationError {
     /// The telescope anchor names a different entry than the grounding owner.
@@ -123,6 +134,9 @@ impl GroundingFailure {
 /// Grep groundings are approximate: they may over- or under-approximate
 /// the true set of relevant locations. Useful for broad exploration and
 /// for entries whose relevance is diffuse across the codebase.
+///
+/// Matching semantics are validator-defined. Different validators may support
+/// different subsets of the search language.
 #[derive(Clone, Debug)]
 pub struct GrepGrounding {
     /// One or more search patterns that locate relevant code regions.
@@ -147,6 +161,9 @@ impl GrepGrounding {
 ///
 /// Search patterns carry executable search syntax rather than descriptive
 /// prose, so they remain inline data instead of pointing at entries.
+///
+/// Note: validators are allowed to support only a subset of these pattern
+/// kinds. Unsupported patterns should be reported explicitly.
 #[derive(Clone, Debug)]
 pub enum SearchPattern {
     /// Regular expression.
@@ -181,6 +198,9 @@ impl TelescopeAnchor {
 }
 
 /// Anchor-based grounding with optional derived views (spans, witnesses).
+///
+/// Repository-backed validators confirm the anchor text in source code and may
+/// also validate derived spans and witnesses against the same repository view.
 #[derive(Clone, Debug)]
 pub struct TelescopeGrounding {
     /// The anchor establishing the code binding.

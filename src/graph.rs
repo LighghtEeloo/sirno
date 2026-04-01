@@ -1,5 +1,6 @@
-//! The knowledge graph: entries connected by dependencies and affinities,
-//! mapped to code through groundings, with locks guarding sensitive entries.
+//! The knowledge graph: entries connected by dependencies and directed
+//! affinities, mapped to code through groundings, with locks guarding
+//! sensitive entries.
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
@@ -130,8 +131,8 @@ pub enum GraphError {
 
 /// The knowledge graph.
 ///
-/// Holds entries keyed by id, edges (dependencies and affinities), groundings
-/// per entry, and the set of locked entry ids.
+/// Holds entries keyed by id, edges (dependencies and directed affinities),
+/// groundings per entry, and the set of locked entry ids.
 #[derive(Clone, Debug, Default)]
 pub struct Graph {
     entries: HashMap<EntryId, Entry>,
@@ -249,21 +250,21 @@ impl Graph {
 
     // -- affinities ----------------------------------------------------------
 
-    /// Add an affinity edge. All referenced entries must exist.
+    /// Add a directed affinity edge. All referenced entries must exist.
     ///
-    /// Re-inserting an existing endpoint pair replaces the stored relation
+    /// Re-inserting an existing `(from, to)` pair replaces the stored relation
     /// metadata while preserving the endpoints.
     pub fn add_affinity(&mut self, affinity: Affinity) -> Result<bool, GraphError> {
-        self.ensure_entry_exists(affinity.a())?;
-        self.ensure_entry_exists(affinity.b())?;
+        self.ensure_entry_exists(affinity.from())?;
+        self.ensure_entry_exists(affinity.to())?;
         if let Some(meaning) = affinity.meaning() {
             self.ensure_entry_exists(meaning)?;
         }
-        let a = affinity.a().clone();
-        let b = affinity.b().clone();
+        let from = affinity.from().clone();
+        let to = affinity.to().clone();
         let meaning = affinity.meaning().cloned();
         let is_new = self.affinities.insert(affinity.key(), affinity).is_none();
-        debug!(a = %a, b = %b, meaning = ?meaning, is_new, "recorded affinity");
+        debug!(from = %from, to = %to, meaning = ?meaning, is_new, "recorded affinity");
         Ok(is_new)
     }
 
@@ -294,6 +295,10 @@ impl Graph {
     }
 
     /// Validate every grounding in the graph.
+    ///
+    /// This is the graph-side coherence check for groundings. The chosen
+    /// validator determines how much of the grounding language is checked
+    /// mechanically.
     ///
     /// Returns the first invalid grounding together with its owner entry and
     /// index within that entry's grounding list.
@@ -372,20 +377,34 @@ mod tests {
 
     #[test]
     fn affinity_meaning_must_exist() {
-        let left = EntryId::new("left");
-        let right = EntryId::new("right");
+        let source = EntryId::new("source");
+        let target = EntryId::new("target");
         let missing = EntryId::new("missing-meaning");
 
         let mut graph = Graph::new();
-        graph.insert_entry(entry(left.as_str())).unwrap();
-        graph.insert_entry(entry(right.as_str())).unwrap();
+        graph.insert_entry(entry(source.as_str())).unwrap();
+        graph.insert_entry(entry(target.as_str())).unwrap();
 
-        let affinity = Affinity::new(left, right).unwrap().with_meaning(missing.clone());
+        let affinity = Affinity::new(source, target).unwrap().with_meaning(missing.clone());
         let error = graph.add_affinity(affinity).unwrap_err();
 
         match error {
             | crate::graph::GraphError::EntryNotFound(id) => assert_eq!(id, missing),
             | other => panic!("unexpected error: {other:?}"),
         }
+    }
+
+    #[test]
+    fn affinity_direction_is_part_of_identity() {
+        let left = EntryId::new("left");
+        let right = EntryId::new("right");
+
+        let mut graph = Graph::new();
+        graph.insert_entry(entry(left.as_str())).unwrap();
+        graph.insert_entry(entry(right.as_str())).unwrap();
+
+        assert!(graph.add_affinity(Affinity::new(left.clone(), right.clone()).unwrap()).unwrap());
+        assert!(graph.add_affinity(Affinity::new(right, left).unwrap()).unwrap());
+        assert_eq!(graph.affinities().count(), 2);
     }
 }

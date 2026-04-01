@@ -1,7 +1,7 @@
 //! Edges connect entries in the knowledge graph.
 //!
 //! Two kinds exist: directed dependencies that encode causal structure,
-//! and undirected affinities that encode conceptual relevance.
+//! and directed affinities that encode conceptual relevance.
 //!
 //! An edge may point at a separate entry that explains the relation in prose.
 //! The edge still owns the operational semantics; the attached entry owns the
@@ -67,17 +67,20 @@ impl Dependency {
     }
 }
 
-/// Undirected edge between entries that share conceptual relevance.
+/// Directed edge between entries that share conceptual relevance.
 ///
 /// Affinities exist for navigation and epistemic context. They carry no
 /// causal force and generate no obligations.
-///
-/// Invariant: the two entry ids are distinct, stored in canonical order
-/// (`a < b`).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Affinity {
-    a: EntryId,
-    b: EntryId,
+    /// The entry that owns the affinity edge.
+    ///
+    /// Note: affinities are directed so that every edge is stored in the
+    /// source entry's part of the Sirno data representation. The direction is
+    /// a data-representation and navigation choice, not a propagation rule.
+    from: EntryId,
+    /// The entry reached by the affinity edge.
+    to: EntryId,
     /// Optional entry that explains what the affinity means.
     ///
     /// Note: the attached entry is descriptive only. Affinities remain
@@ -86,16 +89,14 @@ pub struct Affinity {
 }
 
 impl Affinity {
-    /// Construct an affinity between two distinct entries.
+    /// Construct a directed affinity between two distinct entries.
     ///
     /// Returns `None` if the two ids are equal (self-affinity is meaningless).
-    /// The ids are stored in canonical order regardless of argument order.
-    pub fn new(x: EntryId, y: EntryId) -> Option<Self> {
-        if x == y {
+    pub fn new(from: EntryId, to: EntryId) -> Option<Self> {
+        if from == to {
             return None;
         }
-        let (a, b) = if x < y { (x, y) } else { (y, x) };
-        Some(Self { a, b, meaning: None })
+        Some(Self { from, to, meaning: None })
     }
 
     /// Attach an entry describing the affinity relation.
@@ -104,14 +105,14 @@ impl Affinity {
         self
     }
 
-    /// The canonically smaller entry.
-    pub fn a(&self) -> &EntryId {
-        &self.a
+    /// The entry that owns the affinity edge.
+    pub fn from(&self) -> &EntryId {
+        &self.from
     }
 
-    /// The canonically larger entry.
-    pub fn b(&self) -> &EntryId {
-        &self.b
+    /// The entry reached by the affinity edge.
+    pub fn to(&self) -> &EntryId {
+        &self.to
     }
 
     /// The optional entry describing this relation.
@@ -121,11 +122,11 @@ impl Affinity {
 
     /// Whether this affinity involves the given entry.
     pub fn contains(&self, id: &EntryId) -> bool {
-        self.a == *id || self.b == *id
+        self.from == *id || self.to == *id
     }
 
     pub(crate) fn key(&self) -> (EntryId, EntryId) {
-        (self.a.clone(), self.b.clone())
+        (self.from.clone(), self.to.clone())
     }
 
     pub(crate) fn meaning_matches(&self, id: &EntryId) -> bool {

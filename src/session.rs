@@ -9,6 +9,9 @@
 //! state (working graph, pending obligations, visited entries) and operations
 //! (mutate, confirm, resolve, justify, approve, commit). The agent decides
 //! traversal order.
+//!
+//! Commit-time coherence is validator-relative. The session delegates
+//! grounding checks to the caller-provided [`GroundingValidator`].
 
 use std::collections::HashSet;
 
@@ -48,27 +51,35 @@ impl Checkpoint {
 /// Errors arising from session operations.
 #[derive(Debug, thiserror::Error)]
 pub enum SessionError {
+    /// A graph mutation violated graph-local invariants.
     #[error(transparent)]
     Graph(#[from] GraphError),
 
+    /// The requested entry mutation requires reviewer approval.
     #[error("entry is locked: {0}")]
     EntryLocked(EntryId),
 
+    /// The referenced obligation id does not exist in this session.
     #[error("obligation not found: {0}")]
     ObligationNotFound(ObligationId),
 
+    /// The requested discharge operation requires a pending obligation.
     #[error("obligation is not pending: {0}")]
     ObligationNotPending(ObligationId),
 
+    /// The requested approval operation requires an awaiting-approval obligation.
     #[error("obligation is not awaiting approval: {0}")]
     ObligationNotAwaitingApproval(ObligationId),
 
+    /// Commit cannot proceed while any obligation remains undischarged.
     #[error("cannot commit: unresolved obligations remain")]
     ObligationsIncomplete,
 
+    /// Commit cannot proceed while any locked-entry mutation lacks approval.
     #[error("cannot commit: pending approvals remain")]
     ApprovalsIncomplete,
 
+    /// Commit cannot proceed because at least one grounding failed validation.
     #[error(transparent)]
     GroundingInvalid(#[from] GroundingFailure),
 }
@@ -264,6 +275,11 @@ impl Session {
     ///
     /// A session commits only if the resulting graph is coherent under
     /// `validator`.
+    ///
+    /// Note: the validator is part of the commit context. A structural
+    /// validator proves only graph-internal grounding invariants, while a
+    /// repository-backed validator can additionally confirm source-text
+    /// resolution.
     pub fn commit<V: GroundingValidator>(self, validator: &V) -> Result<Checkpoint, SessionError> {
         if self.obligations.has_pending_approvals() {
             return Err(SessionError::ApprovalsIncomplete);

@@ -4,6 +4,11 @@
 //! It validates supported grep and telescope groundings against repository
 //! contents while preserving the grounding contract defined in
 //! [`crate::grounding`].
+//!
+//! The repository validator is intentionally narrow. Literal grep patterns,
+//! glob path patterns, and telescope anchors are checked against the
+//! workspace. Regex grep patterns are reported as warnings and left to agent
+//! review rather than treated as commit blockers.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -21,6 +26,10 @@ use crate::grounding::{
 /// Structural grounding invariants are enforced first. The validator then
 /// inspects files below `root` to confirm that supported grep and telescope
 /// anchors still resolve in source text.
+///
+/// The validator skips repository metadata and build output directories
+/// (`.git`, `.jj`, and `target`) so that coherence checks stay scoped to the
+/// authored workspace.
 #[derive(Clone, Debug)]
 pub struct WorkspaceGroundingValidator {
     root: PathBuf,
@@ -28,6 +37,8 @@ pub struct WorkspaceGroundingValidator {
 
 impl WorkspaceGroundingValidator {
     /// Construct a validator over `root`.
+    ///
+    /// `root` defines the repository view used for commit-time coherence.
     pub fn new(root: PathBuf) -> Self {
         Self { root }
     }
@@ -212,6 +223,11 @@ fn path_matches_glob(path: &str, pattern: &str) -> bool {
     )
 }
 
+/// Match `text` against a shell-style wildcard pattern with `*` and `?`.
+///
+/// Note: this matcher is intentionally small. It exists to validate path-glob
+/// groundings without introducing a richer pattern language into the core
+/// repository validator.
 fn wildcard_matches(text: &str, pattern: &str) -> bool {
     let text = text.as_bytes();
     let pattern = pattern.as_bytes();

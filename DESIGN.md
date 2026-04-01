@@ -6,6 +6,18 @@ Sirno is a graph-shaped knowledge database for codebases. It mediates between ab
 
 ---
 
+## Sirno Data Representation
+
+A Sirno-managed project has a project root containing `Sirno.toml`. Together with the configured data directory, these files form the Sirno data representation. If the setting is absent, the data directory defaults to `.sirno` relative to the project root.
+
+The Sirno data representation is the durable form of the current Sirno graph. The data directory is a flat directory of Markdown files. Each file represents one entry. The file stem is the entry id, so entry ids are serialized as portable single path segments rather than hierarchical paths. The layout is flat because entry ids are nominal: directory structure does not carry graph meaning.
+
+Each entry file in the Sirno data representation begins with a machine-readable JSON header followed by a Markdown body. The header stores only state with a unique ownership rule. Entry-local fields, groundings, and lock state are owned by the entry itself. A dependency `X → Y` is owned by `X`. An affinity `X ↝ Y` is also owned by `X`. The body stores the entry's explanation text.
+
+The Sirno data representation is the ground truth for a Sirno project. The in-memory graph, sessions, patches, and obligations are operational views derived from it. If Sirno keeps caches or indexes, they are derived data and may be rebuilt from the Sirno data representation.
+
+---
+
 ## Core Concepts
 
 ### Entry
@@ -21,15 +33,19 @@ An entry represents a single claim about the codebase: an invariant, a design de
 
 Entries are the only durable owner of dedicated explanatory text in the model. When another concept needs prose, it refers to an entry. Non-entry strings are reserved for operational syntax such as search patterns.
 
+In the Sirno data representation, an entry is stored as one Markdown file in the data directory. The header contains the entry id, the optional human-readable name, the concise description, and the graph metadata owned by the entry. The body contains the full explanation.
+
 ### Edge
 
 Edges connect entries. Every edge is one of two kinds:
 
 - A *dependency* is a directed edge X → Y asserting that Y's validity is contingent on X's content. If X changes, Y must be re-examined. Dependencies encode causal structure.
 
-- An *affinity* is an undirected edge between entries that share conceptual relevance. Affinities exist for navigation and epistemic context. They carry no causal force and generate no obligations.
+- An *affinity* is a directed edge between entries that share conceptual relevance. Affinities exist for navigation and epistemic context. They carry no causal force and generate no obligations.
 
 Either kind of edge may optionally refer to an additional entry that explains what the relation means. The attached entry is descriptive metadata. The edge kind and endpoints still determine the operational behavior.
+
+Affinity direction is a data-representation and traversal choice. It determines which entry owns the edge in the Sirno data representation and which adjacency list exposes it first. It does not introduce dependency propagation or any notion of logical consequence.
 
 ### Grounding
 
@@ -47,6 +63,8 @@ Telescope anchors support derived views:
 
 - A *witness* is a telescope-grounded code region that serves as evidence for an entry's claim. During a rewrite session, an agent verifies that witnesses still substantiate their entries.
 
+Grounding validation is stratified. Structural validation checks invariants expressible in the graph itself, such as anchor ownership. Repository validation checks supported grounding kinds against the codebase. A validator may report unsupported heuristic checks as warnings rather than commit blockers.
+
 ### Lifting
 
 Lifting is the inverse of grounding: it constructs or updates an entry from observed code. Where grounding interprets the abstract graph into concrete syntax, lifting abstracts concrete code back into the knowledge graph, creating new entries, revising descriptions, or adjusting dependencies based on what the codebase contains.
@@ -61,7 +79,7 @@ An obligation remains pending until an agent discharges it through confirmation,
 
 ### Coherence
 
-A graph state is coherent when every obligation has been discharged, every locked-entry mutation has received approval, and every grounding accurately locates its code. Coherence is the well-formedness invariant of the knowledge graph: the analogue of well-typedness for the system as a whole.
+A graph state is coherent when every obligation has been discharged, every locked-entry mutation has received approval, and every grounding has been validated under the commit-time grounding validator. Coherence is the well-formedness invariant of the knowledge graph: the analogue of well-typedness for the system as a whole.
 
 ---
 
@@ -91,15 +109,15 @@ A justification is submitted to a reviewer, who grants or withholds approval. Th
 
 ### Checkpoint
 
-A checkpoint is an immutable snapshot of the entire graph at a moment of coherence. Every checkpoint satisfies the coherence invariant. Checkpoints are the durable states of the knowledge graph; all prior states remain accessible.
+A checkpoint is an immutable snapshot of the entire graph at a moment of coherence. Every checkpoint satisfies the coherence invariant. In a repository-backed deployment, a checkpoint is realized by a coherent snapshot of the Sirno data representation, typically through the host version-control history.
 
 ### Patch
 
-A patch is the accumulated record of all proposed mutations during a session. It captures entry edits, entry creation, dependency and affinity changes, and grounding updates. A patch is a pending transaction: it describes the difference between the current checkpoint and the intended next checkpoint.
+A patch is the accumulated record of all proposed mutations during a session. It captures entry edits, entry creation, dependency and affinity changes, and grounding updates. A patch is a pending transaction: it describes the difference between the current Sirno data representation and the intended next checkpoint.
 
 ### Session
 
-A session is the working interval between two checkpoints. It maintains a mutable working copy of the base graph. All mutations during the interval flow through the session, which applies each mutation to the working copy, records it in the patch, and generates obligations when entry content changes. The working state is visible only to the active session; other observers see the last checkpoint.
+A session is the working interval between two checkpoints. It loads the current Sirno data representation into a mutable working graph. All mutations during the interval flow through the session, which applies each mutation to the working copy, records it in the patch, and generates obligations when entry content changes. The working state is visible only to the active session; other observers see the last checkpoint.
 
 Only entry-content mutations (updates to an entry's name, description, or explanation, and entry removal) generate obligations. Structural mutations (edge changes, grounding attachments, lock state) do not. When an entry is removed, its dependents are captured before the removal deletes the associated edges.
 
@@ -121,7 +139,9 @@ An agent discharges an obligation through one of four operations:
 
 A patch is promoted to a new checkpoint (committed) when the resulting graph state is coherent.
 
-In practice this requires that all obligations induced by the patch's mutations have been discharged, every mutation to a locked entry has received reviewer approval, and every grounding affected by the patch has been validated.
+In practice this requires that all obligations induced by the patch's mutations have been discharged, every mutation to a locked entry has received reviewer approval, and every grounding in the resulting graph has been validated. The commit writes the resulting graph back to the Sirno data representation.
+
+The grounding validator is part of the commit context. A structural validator checks graph-internal invariants only. A repository validator additionally checks supported grounding kinds against the codebase.
 
 ---
 
@@ -147,7 +167,7 @@ For cyclic dependencies, the entries in a strongly connected component must be r
 |---------------|-----------------------------------------------------------|
 | Entry         | Primitive knowledge unit with nominal identity            |
 | Dependency    | Directed causal edge; validity contingency                |
-| Affinity      | Undirected navigational edge; epistemic context           |
+| Affinity      | Directed navigational edge; epistemic context             |
 | Grounding     | Entry-to-code mapping (grep or telescope)                 |
 | Lifting       | Code-to-entry abstraction; inverse of grounding           |
 | Witness       | Telescope-grounded evidence for an entry's claim          |
