@@ -57,13 +57,11 @@ Lifting is the primary operation during reflection. An agent examines code (loca
 
 An obligation is a proof burden generated when an entry is mutated. If entry X changes and a dependency X → Y exists, an obligation is created on Y: the claim that Y must be re-examined for consistency with the new X.
 
-Obligations propagate along dependency edges. When an agent discharges an obligation on Y, possibly mutating Y in the process, new obligations may arise on entries downstream of Y, and so on until a fixed point is reached.
-
-An obligation is discharged by an agent either confirming the downstream entry remains valid, or updating it and propagating further.
+An obligation remains pending until an agent discharges it through confirmation, update, or justified deferral.
 
 ### Coherence
 
-A graph state is coherent when every obligation has been discharged and every grounding accurately locates its code. Coherence is the well-formedness invariant of the knowledge graph: the analogue of well-typedness for the system as a whole.
+A graph state is coherent when every obligation has been discharged, every locked-entry mutation has received approval, and every grounding accurately locates its code. Coherence is the well-formedness invariant of the knowledge graph: the analogue of well-typedness for the system as a whole.
 
 ---
 
@@ -83,9 +81,13 @@ Polarity is per-entry guidance to the agent, chosen based on the task at hand. B
 
 A lock is a write capability guard on an entry. A locked entry can be read and its obligations can be examined, but mutation requires external approval.
 
-An agent that needs to mutate a locked entry produces a *justification*: a record containing the deferred mutation and an argument entry describing why the change is necessary. The justification is submitted to a reviewer, who grants or withholds approval. The mutation materializes only upon approval.
-
 Locks encode trust boundaries. They protect entries whose content has system-wide consequences (core invariants, architectural decisions, stability guarantees) from unreviewed modification.
+
+### Justification
+
+A justification is a record produced when an agent proposes a mutation to a locked entry. It contains the deferred mutation and an argument entry describing why the change is necessary.
+
+A justification is submitted to a reviewer, who grants or withholds approval. The deferred mutation materializes only upon approval.
 
 ### Checkpoint
 
@@ -111,19 +113,15 @@ An agent discharges an obligation through one of four operations:
 
 - *Resolve*: the target entry requires an update. The update is applied through the normal mutation path, which may generate further obligations on its dependents. The obligation is marked discharged; the target is added to the visited set.
 
-- *Justify*: the target entry requires an update but is locked. The agent submits a justification (the proposed mutation and an argument entry). The obligation transitions to awaiting approval.
+- *Justify*: the target entry requires an update but is locked. The agent submits a justification. The obligation transitions to awaiting approval.
 
 - *Approve*: an external reviewer grants approval for a justified mutation. The deferred mutation is applied, generating further obligations as usual. The obligation is marked discharged; the target is added to the visited set. The lock is not rechecked — the approval is the authorization.
 
 ### Commit
 
-A patch is promoted to a new checkpoint (committed) when it satisfies two conditions:
+A patch is promoted to a new checkpoint (committed) when the resulting graph state is coherent.
 
-- *Obligation-completeness* requires that all obligations induced by the patch's mutations have been discharged. Every dependency chain has been followed to a fixed point.
-
-- *Approval-completeness* requires that every mutation to a locked entry within the patch has received reviewer approval.
-
-Both conditions must hold simultaneously.
+In practice this requires that all obligations induced by the patch's mutations have been discharged, every mutation to a locked entry has received reviewer approval, and every grounding affected by the patch has been validated.
 
 ---
 
@@ -137,7 +135,7 @@ When an entry X is mutated within a session:
 4. If Y is updated, the obligation is discharged and step 1 recurs with Y.
 5. If Y is locked, the agent produces a justification and the obligation remains pending until approval is granted and the update is applied.
 
-Propagation follows dependency edges in their declared direction during actualization. During reflection, when a grounding change is lifted into an entry, obligations may propagate against the dependency direction: entries that depend on the changed entry must also be checked. The dependency graph thus carries bidirectional operational meaning, with edges defining validity contingency in one direction and change-notification in both.
+Propagation follows dependency edges in their declared direction in both polarities. Reflection changes the source of truth: the agent starts from code observations, lifts them into entries, and then propagates obligations to downstream dependents in the same way as actualization.
 
 For cyclic dependencies, the entries in a strongly connected component must be re-examined collectively. Obligations within a cycle are discharged as a group once the component reaches a consistent fixed point.
 
