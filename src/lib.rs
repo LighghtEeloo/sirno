@@ -13,4 +13,5 @@ pub mod graph;
 pub mod grounding;
 pub mod mutation;
 pub mod obligation;
+pub mod repository;
 pub mod session;

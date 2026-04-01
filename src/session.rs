@@ -364,6 +364,9 @@ impl Session {
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
     use super::{Checkpoint, Session};
     use crate::edge::Dependency;
     use crate::entry::{Entry, EntryId};
@@ -374,9 +377,37 @@ mod tests {
     };
     use crate::mutation::{FieldUpdate, Mutation};
     use crate::obligation::ObligationStatus;
+    use crate::repository::WorkspaceGroundingValidator;
 
     fn entry(id: &str) -> Entry {
         Entry::new(EntryId::new(id), format!("{id} description"), format!("{id} explanation"))
+    }
+
+    struct TempWorkspace {
+        root: std::path::PathBuf,
+    }
+
+    impl TempWorkspace {
+        fn new(name: &str) -> Self {
+            let unique = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+            let root = std::env::temp_dir().join(format!("sirno-session-{name}-{unique}"));
+            fs::create_dir_all(&root).unwrap();
+            Self { root }
+        }
+
+        fn write(&self, relative: &str, contents: &str) {
+            let path = self.root.join(relative);
+            if let Some(parent) = path.parent() {
+                fs::create_dir_all(parent).unwrap();
+            }
+            fs::write(path, contents).unwrap();
+        }
+    }
+
+    impl Drop for TempWorkspace {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.root);
+        }
     }
 
     #[test]
@@ -482,6 +513,31 @@ mod tests {
             .unwrap();
 
         let checkpoint = session.commit(&StructuralGroundingValidator).unwrap();
+        assert_eq!(checkpoint.graph().groundings(&owner).len(), 1);
+    }
+
+    #[test]
+    fn commit_accepts_workspace_validated_telescope_groundings() {
+        let workspace = TempWorkspace::new("workspace-commit");
+        let owner = EntryId::new("owner");
+        workspace.write("src/lib.rs", "// @sirno:owner\nfn anchored() {}\n");
+
+        let mut graph = Graph::new();
+        graph.insert_entry(entry(owner.as_str())).unwrap();
+
+        let checkpoint = Checkpoint::new(graph);
+        let mut session = Session::new(checkpoint);
+        session
+            .mutate(Mutation::AddGrounding {
+                entry: owner.clone(),
+                grounding: Grounding::Telescope(TelescopeGrounding::new(TelescopeAnchor::new(
+                    owner.clone(),
+                ))),
+            })
+            .unwrap();
+
+        let validator = WorkspaceGroundingValidator::new(workspace.root.clone());
+        let checkpoint = session.commit(&validator).unwrap();
         assert_eq!(checkpoint.graph().groundings(&owner).len(), 1);
     }
 }

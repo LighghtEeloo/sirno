@@ -77,6 +77,9 @@ pub enum GroundingValidationError {
     /// An external witness check determined that the code no longer supports the claim.
     #[error("witness for {entry} no longer substantiates the entry")]
     WitnessMismatch { entry: EntryId },
+    /// The repository could not be read during validation.
+    #[error("failed to inspect repository path {path}: {message}")]
+    RepositoryIo { path: String, message: String },
 }
 
 /// Concrete report of which grounding failed validation.
