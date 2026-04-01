@@ -14,6 +14,7 @@ use std::collections::HashSet;
 
 use crate::entry::EntryId;
 use crate::graph::{Graph, GraphError};
+use crate::grounding::{GroundingFailure, GroundingValidator};
 use crate::mutation::{FieldUpdate, Mutation, Patch};
 use crate::obligation::{Justification, ObligationId, ObligationSet, ObligationStatus};
 use tracing::debug;
@@ -21,7 +22,8 @@ use tracing::debug;
 /// Immutable snapshot of the graph at a moment of coherence.
 ///
 /// Every checkpoint satisfies the coherence invariant: all obligations
-/// discharged and all groundings accurate.
+/// discharged, all locked-entry mutations approved, and all groundings
+/// validated under the commit-time grounding validator.
 #[derive(Clone, Debug)]
 pub struct Checkpoint {
     /// The graph state at the time of the snapshot.
@@ -31,8 +33,8 @@ pub struct Checkpoint {
 impl Checkpoint {
     /// Create a checkpoint from a graph that is assumed coherent.
     ///
-    /// Note: coherence is not verified at construction. The caller is
-    /// responsible for ensuring all obligations are discharged.
+    /// Note: coherence is not verified at construction. `Session::commit()`
+    /// is the checked entry point.
     pub fn new(graph: Graph) -> Self {
         Self { graph }
     }
@@ -66,6 +68,9 @@ pub enum SessionError {
 
     #[error("cannot commit: pending approvals remain")]
     ApprovalsIncomplete,
+
+    #[error(transparent)]
+    GroundingInvalid(#[from] GroundingFailure),
 }
 
 /// Working interval between two checkpoints.
@@ -257,15 +262,16 @@ impl Session {
 
     /// Promote the patch to a new checkpoint. Consumes the session.
     ///
-    /// Requires both obligation-completeness (all discharged) and
-    /// approval-completeness (no pending approvals).
-    pub fn commit(self) -> Result<Checkpoint, SessionError> {
+    /// A session commits only if the resulting graph is coherent under
+    /// `validator`.
+    pub fn commit<V: GroundingValidator>(self, validator: &V) -> Result<Checkpoint, SessionError> {
         if self.obligations.has_pending_approvals() {
             return Err(SessionError::ApprovalsIncomplete);
         }
         if !self.obligations.is_complete() {
             return Err(SessionError::ObligationsIncomplete);
         }
+        self.working.validate_groundings(validator)?;
         Ok(Checkpoint::new(self.working))
     }
 
@@ -362,6 +368,10 @@ mod tests {
     use crate::edge::Dependency;
     use crate::entry::{Entry, EntryId};
     use crate::graph::Graph;
+    use crate::grounding::{
+        Grounding, GroundingValidationError, StructuralGroundingValidator, TelescopeAnchor,
+        TelescopeGrounding,
+    };
     use crate::mutation::{FieldUpdate, Mutation};
     use crate::obligation::ObligationStatus;
 
@@ -414,5 +424,64 @@ mod tests {
             }
             | status => panic!("unexpected status: {status:?}"),
         }
+    }
+
+    #[test]
+    fn commit_rejects_invalid_groundings() {
+        let owner = EntryId::new("owner");
+        let other = EntryId::new("other");
+
+        let mut graph = Graph::new();
+        graph.insert_entry(entry(owner.as_str())).unwrap();
+        graph.insert_entry(entry(other.as_str())).unwrap();
+
+        let checkpoint = Checkpoint::new(graph);
+        let mut session = Session::new(checkpoint);
+        session
+            .mutate(Mutation::AddGrounding {
+                entry: owner.clone(),
+                grounding: Grounding::Telescope(TelescopeGrounding::new(TelescopeAnchor::new(
+                    other.clone(),
+                ))),
+            })
+            .unwrap();
+
+        let error = session.commit(&StructuralGroundingValidator).unwrap_err();
+        match error {
+            | super::SessionError::GroundingInvalid(failure) => {
+                assert_eq!(failure.entry(), &owner);
+                assert_eq!(failure.grounding_index(), 0);
+                assert_eq!(
+                    failure.source(),
+                    &GroundingValidationError::AnchorEntryMismatch {
+                        entry: owner,
+                        anchor_entry: other,
+                    }
+                );
+            }
+            | other => panic!("unexpected error: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn commit_accepts_structurally_valid_groundings() {
+        let owner = EntryId::new("owner");
+
+        let mut graph = Graph::new();
+        graph.insert_entry(entry(owner.as_str())).unwrap();
+
+        let checkpoint = Checkpoint::new(graph);
+        let mut session = Session::new(checkpoint);
+        session
+            .mutate(Mutation::AddGrounding {
+                entry: owner.clone(),
+                grounding: Grounding::Telescope(TelescopeGrounding::new(TelescopeAnchor::new(
+                    owner.clone(),
+                ))),
+            })
+            .unwrap();
+
+        let checkpoint = session.commit(&StructuralGroundingValidator).unwrap();
+        assert_eq!(checkpoint.graph().groundings(&owner).len(), 1);
     }
 }

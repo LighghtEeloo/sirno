@@ -13,6 +13,104 @@ pub enum Grounding {
     Telescope(TelescopeGrounding),
 }
 
+impl Grounding {
+    /// Validate the structural invariants encoded directly in this grounding.
+    ///
+    /// This check does not inspect the codebase. It only verifies invariants
+    /// representable inside the graph data model.
+    pub fn validate_structure(&self, entry: &EntryId) -> Result<(), GroundingValidationError> {
+        match self {
+            | Self::Grep(_) => Ok(()),
+            | Self::Telescope(grounding) => grounding.validate_structure(entry),
+        }
+    }
+}
+
+/// Validates whether a grounding still denotes the code claimed by an entry.
+///
+/// Callers that can inspect the codebase should implement this trait and
+/// enforce project-specific grounding checks during commit.
+pub trait GroundingValidator {
+    /// Validate one grounding attached to `entry`.
+    fn validate(
+        &self, entry: &EntryId, grounding: &Grounding,
+    ) -> Result<(), GroundingValidationError>;
+}
+
+/// Baseline grounding validator that checks only graph-internal invariants.
+///
+/// Note: this validator does not inspect source files. It is sufficient for
+/// tests and for invariants encoded directly in the graph, but it does not
+/// prove that a grounding still locates the intended code.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct StructuralGroundingValidator;
+
+impl GroundingValidator for StructuralGroundingValidator {
+    fn validate(
+        &self, entry: &EntryId, grounding: &Grounding,
+    ) -> Result<(), GroundingValidationError> {
+        grounding.validate_structure(entry)
+    }
+}
+
+/// Failure reported while validating a grounding.
+#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+pub enum GroundingValidationError {
+    /// The telescope anchor names a different entry than the grounding owner.
+    #[error("telescope anchor points to {anchor_entry} but grounding belongs to {entry}")]
+    AnchorEntryMismatch { entry: EntryId, anchor_entry: EntryId },
+    /// A span start anchor names a different entry than the grounding owner.
+    #[error("span start anchor points to {anchor_entry} but grounding belongs to {entry}")]
+    SpanStartEntryMismatch { entry: EntryId, anchor_entry: EntryId },
+    /// A span end anchor names a different entry than the grounding owner.
+    #[error("span end anchor points to {anchor_entry} but grounding belongs to {entry}")]
+    SpanEndEntryMismatch { entry: EntryId, anchor_entry: EntryId },
+    /// A witness span contains an anchor for a different entry than the grounding owner.
+    #[error("witness anchor points to {anchor_entry} but grounding belongs to {entry}")]
+    WitnessEntryMismatch { entry: EntryId, anchor_entry: EntryId },
+    /// An external grep check found no code corresponding to the grounding.
+    #[error("grep grounding for {entry} does not match any code")]
+    GrepMiss { entry: EntryId },
+    /// An external telescope check could not resolve the anchored code location.
+    #[error("telescope grounding for {entry} does not resolve in code")]
+    MissingAnchor { entry: EntryId },
+    /// An external witness check determined that the code no longer supports the claim.
+    #[error("witness for {entry} no longer substantiates the entry")]
+    WitnessMismatch { entry: EntryId },
+}
+
+/// Concrete report of which grounding failed validation.
+#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+#[error("grounding {grounding_index} for entry {entry} is invalid: {source}")]
+pub struct GroundingFailure {
+    entry: EntryId,
+    grounding_index: usize,
+    #[source]
+    source: GroundingValidationError,
+}
+
+impl GroundingFailure {
+    /// Construct a grounding failure report.
+    pub fn new(entry: EntryId, grounding_index: usize, source: GroundingValidationError) -> Self {
+        Self { entry, grounding_index, source }
+    }
+
+    /// The entry that owns the invalid grounding.
+    pub fn entry(&self) -> &EntryId {
+        &self.entry
+    }
+
+    /// The grounding's index within the owning entry's grounding list.
+    pub fn grounding_index(&self) -> usize {
+        self.grounding_index
+    }
+
+    /// The specific validation failure.
+    pub fn source(&self) -> &GroundingValidationError {
+        &self.source
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Grep grounding
 // ---------------------------------------------------------------------------
@@ -96,6 +194,23 @@ impl TelescopeGrounding {
         Self { anchor, spans: Vec::new(), witnesses: Vec::new() }
     }
 
+    /// Validate the structural invariants encoded in this grounding.
+    pub fn validate_structure(&self, entry: &EntryId) -> Result<(), GroundingValidationError> {
+        if &self.anchor.entry_id != entry {
+            return Err(GroundingValidationError::AnchorEntryMismatch {
+                entry: entry.clone(),
+                anchor_entry: self.anchor.entry_id.clone(),
+            });
+        }
+        for span in &self.spans {
+            span.validate_structure(entry)?;
+        }
+        for witness in &self.witnesses {
+            witness.validate_structure(entry)?;
+        }
+        Ok(())
+    }
+
     /// Attach span views.
     pub fn with_spans(mut self, spans: Vec<Span>) -> Self {
         self.spans = spans;
@@ -120,6 +235,15 @@ pub struct Span {
     pub end: SpanBound,
 }
 
+impl Span {
+    /// Validate that any anchors in this span are consistent with the owner entry.
+    pub fn validate_structure(&self, entry: &EntryId) -> Result<(), GroundingValidationError> {
+        self.start.validate_structure(entry, SpanAnchorPosition::Start)?;
+        self.end.validate_structure(entry, SpanAnchorPosition::End)?;
+        Ok(())
+    }
+}
+
 /// One end of a span: either a telescope anchor or the enclosing scope
 /// boundary.
 #[derive(Clone, Debug)]
@@ -131,6 +255,30 @@ pub enum SpanBound {
     ScopeBoundary,
 }
 
+impl SpanBound {
+    fn validate_structure(
+        &self, entry: &EntryId, position: SpanAnchorPosition,
+    ) -> Result<(), GroundingValidationError> {
+        let anchor = match self {
+            | Self::Anchor(anchor) => anchor,
+            | Self::ScopeBoundary => return Ok(()),
+        };
+        if &anchor.entry_id == entry {
+            return Ok(());
+        }
+        match position {
+            | SpanAnchorPosition::Start => Err(GroundingValidationError::SpanStartEntryMismatch {
+                entry: entry.clone(),
+                anchor_entry: anchor.entry_id.clone(),
+            }),
+            | SpanAnchorPosition::End => Err(GroundingValidationError::SpanEndEntryMismatch {
+                entry: entry.clone(),
+                anchor_entry: anchor.entry_id.clone(),
+            }),
+        }
+    }
+}
+
 /// A telescope-grounded code region serving as evidence for an entry's claim.
 ///
 /// During a rewrite session, an agent verifies that witnesses still
@@ -139,4 +287,23 @@ pub enum SpanBound {
 pub struct Witness {
     /// The code region providing evidence.
     pub span: Span,
+}
+
+impl Witness {
+    /// Validate that the witness is structurally attached to the owner entry.
+    pub fn validate_structure(&self, entry: &EntryId) -> Result<(), GroundingValidationError> {
+        self.span.validate_structure(entry).map_err(|error| match error {
+            | GroundingValidationError::SpanStartEntryMismatch { entry, anchor_entry }
+            | GroundingValidationError::SpanEndEntryMismatch { entry, anchor_entry } => {
+                GroundingValidationError::WitnessEntryMismatch { entry, anchor_entry }
+            }
+            | other => other,
+        })
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+enum SpanAnchorPosition {
+    Start,
+    End,
 }

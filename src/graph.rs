@@ -5,7 +5,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::edge::{Affinity, Dependency};
 use crate::entry::{Entry, EntryId};
-use crate::grounding::Grounding;
+use crate::grounding::{Grounding, GroundingFailure, GroundingValidator};
 use tracing::debug;
 
 /// Bidirectional index over directed dependency edges.
@@ -291,6 +291,23 @@ impl Graph {
     /// All groundings for an entry.
     pub fn groundings(&self, id: &EntryId) -> &[Grounding] {
         self.groundings.get(id).map_or(&[], |v| v.as_slice())
+    }
+
+    /// Validate every grounding in the graph.
+    ///
+    /// Returns the first invalid grounding together with its owner entry and
+    /// index within that entry's grounding list.
+    pub fn validate_groundings<V: GroundingValidator>(
+        &self, validator: &V,
+    ) -> Result<(), GroundingFailure> {
+        for (entry, groundings) in &self.groundings {
+            for (grounding_index, grounding) in groundings.iter().enumerate() {
+                validator.validate(entry, grounding).map_err(|source| {
+                    GroundingFailure::new(entry.clone(), grounding_index, source)
+                })?;
+            }
+        }
+        Ok(())
     }
 
     // -- locks ---------------------------------------------------------------
