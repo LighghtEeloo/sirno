@@ -14,10 +14,12 @@ use crate::mutation::Mutation;
 pub struct ObligationId(u64);
 
 impl ObligationId {
+    /// Construct an obligation id from its numeric counter.
     pub fn new(id: u64) -> Self {
         Self(id)
     }
 
+    /// The numeric counter carried by this identifier.
     pub fn as_u64(&self) -> u64 {
         self.0
     }
@@ -33,14 +35,44 @@ impl std::fmt::Display for ObligationId {
 ///
 /// Submitted to a reviewer who grants or withholds approval.
 /// The mutation materializes only upon approval.
+///
+/// The rationale text lives in `argument_entry`. The justification record only
+/// points at that entry.
 #[derive(Clone, Debug)]
 pub struct Justification {
     /// The locked entry that the agent wants to mutate.
-    pub entry: EntryId,
+    entry: EntryId,
     /// The proposed mutation, deferred until approval.
-    pub mutation: Box<Mutation>,
-    /// The agent's argument for the change.
-    pub argument: String,
+    mutation: Box<Mutation>,
+    /// Entry containing the argument for the change.
+    argument_entry: EntryId,
+}
+
+impl Justification {
+    /// Construct a justification for a deferred mutation.
+    pub fn new(entry: EntryId, mutation: Mutation, argument_entry: EntryId) -> Self {
+        Self { entry, mutation: Box::new(mutation), argument_entry }
+    }
+
+    /// The locked entry that the agent wants to mutate.
+    pub fn entry(&self) -> &EntryId {
+        &self.entry
+    }
+
+    /// The deferred mutation awaiting approval.
+    pub fn mutation(&self) -> &Mutation {
+        &self.mutation
+    }
+
+    /// Consume the justification and return the deferred mutation.
+    pub fn into_mutation(self) -> Mutation {
+        *self.mutation
+    }
+
+    /// The entry that carries the human-readable rationale.
+    pub fn argument_entry(&self) -> &EntryId {
+        &self.argument_entry
+    }
 }
 
 /// A proof burden on a downstream entry.
@@ -57,18 +89,22 @@ pub struct Obligation {
 }
 
 impl Obligation {
+    /// The obligation's session-local identifier.
     pub fn id(&self) -> &ObligationId {
         &self.id
     }
 
+    /// The entry that must be re-examined.
     pub fn target(&self) -> &EntryId {
         &self.target
     }
 
+    /// The entry whose mutation caused this obligation.
     pub fn cause(&self) -> &EntryId {
         &self.cause
     }
 
+    /// The current discharge status.
     pub fn status(&self) -> &ObligationStatus {
         &self.status
     }

@@ -19,6 +19,8 @@ An entry is the primitive unit of knowledge in Sirno. Each entry carries:
 
 An entry represents a single claim about the codebase: an invariant, a design decision, a module's purpose, a data representation choice, or any other isolable piece of understanding. Entries are self-contained in the sense that their explanation is intelligible on its own, though their full significance may involve their position in the graph.
 
+Entries are the only durable owner of dedicated explanatory text in the model. When another concept needs prose, it refers to an entry. Non-entry strings are reserved for operational syntax such as search patterns.
+
 ### Edge
 
 Edges connect entries. Every edge is one of two kinds:
@@ -26,6 +28,8 @@ Edges connect entries. Every edge is one of two kinds:
 - A *dependency* is a directed edge X → Y asserting that Y's validity is contingent on X's content. If X changes, Y must be re-examined. Dependencies encode causal structure.
 
 - An *affinity* is an undirected edge between entries that share conceptual relevance. Affinities exist for navigation and epistemic context. They carry no causal force and generate no obligations.
+
+Either kind of edge may optionally refer to an additional entry that explains what the relation means. The attached entry is descriptive metadata. The edge kind and endpoints still determine the operational behavior.
 
 ### Grounding
 
@@ -79,7 +83,7 @@ Polarity is per-entry guidance to the agent, chosen based on the task at hand. B
 
 A lock is a write capability guard on an entry. A locked entry can be read and its obligations can be examined, but mutation requires external approval.
 
-An agent that needs to mutate a locked entry produces a *justification*: an argument for why the change is necessary. The justification is submitted to a reviewer, who grants or withholds approval. The mutation materializes only upon approval.
+An agent that needs to mutate a locked entry produces a *justification*: a record containing the deferred mutation and an argument entry describing why the change is necessary. The justification is submitted to a reviewer, who grants or withholds approval. The mutation materializes only upon approval.
 
 Locks encode trust boundaries. They protect entries whose content has system-wide consequences (core invariants, architectural decisions, stability guarantees) from unreviewed modification.
 
@@ -107,7 +111,7 @@ An agent discharges an obligation through one of four operations:
 
 - *Resolve*: the target entry requires an update. The update is applied through the normal mutation path, which may generate further obligations on its dependents. The obligation is marked discharged; the target is added to the visited set.
 
-- *Justify*: the target entry requires an update but is locked. The agent submits a justification (the proposed mutation and an argument). The obligation transitions to awaiting approval.
+- *Justify*: the target entry requires an update but is locked. The agent submits a justification (the proposed mutation and an argument entry). The obligation transitions to awaiting approval.
 
 - *Approve*: an external reviewer grants approval for a justified mutation. The deferred mutation is applied, generating further obligations as usual. The obligation is marked discharged; the target is added to the visited set. The lock is not rechecked — the approval is the authorization.
 
@@ -153,7 +157,7 @@ For cyclic dependencies, the entries in a strongly connected component must be r
 | Coherence     | Well-formedness invariant on the graph state              |
 | Polarity      | Per-entry direction-of-authority guidance                 |
 | Lock          | Write capability guard requiring reviewer approval        |
-| Justification | Argument accompanying a proposed write to a locked entry  |
+| Justification | Deferred locked-entry mutation plus its argument entry    |
 | Checkpoint    | Immutable coherent snapshot of the full graph             |
 | Patch         | Pending transaction accumulating session mutations        |
 | Session       | Working interval between checkpoints                      |

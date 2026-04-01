@@ -16,6 +16,7 @@ use crate::entry::EntryId;
 use crate::graph::{Graph, GraphError};
 use crate::mutation::{FieldUpdate, Mutation, Patch};
 use crate::obligation::{Justification, ObligationId, ObligationSet, ObligationStatus};
+use tracing::debug;
 
 /// Immutable snapshot of the graph at a moment of coherence.
 ///
@@ -199,10 +200,11 @@ impl Session {
 
     /// Submit a justification for a locked entry's obligation.
     ///
-    /// The obligation remains pending (as `AwaitingApproval`) until a
-    /// reviewer calls `approve()`.
+    /// `argument_entry` must already exist in the working graph and carries the
+    /// justification text. The obligation remains pending (as
+    /// `AwaitingApproval`) until a reviewer calls `approve()`.
     pub fn justify(
-        &mut self, id: ObligationId, argument: String, mutation: Mutation,
+        &mut self, id: ObligationId, argument_entry: EntryId, mutation: Mutation,
     ) -> Result<(), SessionError> {
         let obligation = self
             .obligations
@@ -211,8 +213,12 @@ impl Session {
         if !matches!(obligation.status(), ObligationStatus::Pending) {
             return Err(SessionError::ObligationNotPending(id));
         }
+        if self.working.entry(&argument_entry).is_none() {
+            return Err(GraphError::EntryNotFound(argument_entry).into());
+        }
         let entry = obligation.target().clone();
-        let justification = Justification { entry, mutation: Box::new(mutation), argument };
+        debug!(obligation = %id, target = %entry, argument_entry = %argument_entry, "submitted justification");
+        let justification = Justification::new(entry, mutation, argument_entry);
         self.obligations
             .get_mut(&id)
             .unwrap()
@@ -234,10 +240,15 @@ impl Session {
             | ObligationStatus::AwaitingApproval(j) => j.clone(),
             | _ => return Err(SessionError::ObligationNotAwaitingApproval(id)),
         };
+        if self.working.entry(justification.argument_entry()).is_none() {
+            return Err(GraphError::EntryNotFound(justification.argument_entry().clone()).into());
+        }
         let target = obligation.target().clone();
+        let argument_entry = justification.argument_entry().clone();
         // Apply the deferred mutation, bypassing lock check.
-        self.apply_and_propagate(*justification.mutation)?;
+        self.apply_and_propagate(justification.into_mutation())?;
         self.visited.insert(target);
+        debug!(obligation = %id, argument_entry = %argument_entry, "approved justification");
         self.obligations.get_mut(&id).unwrap().set_status(ObligationStatus::Discharged);
         Ok(())
     }
@@ -326,7 +337,7 @@ impl Session {
                 graph.remove_dependency(dep);
             }
             | Mutation::AddAffinity(aff) => {
-                graph.add_affinity(aff.clone());
+                graph.add_affinity(aff.clone())?;
             }
             | Mutation::RemoveAffinity(aff) => {
                 graph.remove_affinity(aff);
@@ -342,5 +353,66 @@ impl Session {
             }
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Checkpoint, Session};
+    use crate::edge::Dependency;
+    use crate::entry::{Entry, EntryId};
+    use crate::graph::Graph;
+    use crate::mutation::{FieldUpdate, Mutation};
+    use crate::obligation::ObligationStatus;
+
+    fn entry(id: &str) -> Entry {
+        Entry::new(EntryId::new(id), format!("{id} description"), format!("{id} explanation"))
+    }
+
+    #[test]
+    fn justification_points_at_an_entry() {
+        let cause = EntryId::new("cause");
+        let target = EntryId::new("target");
+        let argument = EntryId::new("justify-target-update");
+
+        let mut graph = Graph::new();
+        graph.insert_entry(entry(cause.as_str())).unwrap();
+        graph.insert_entry(entry(target.as_str())).unwrap();
+        graph.insert_entry(entry(argument.as_str())).unwrap();
+        graph.add_dependency(Dependency::new(cause.clone(), target.clone())).unwrap();
+        graph.lock(&target).unwrap();
+
+        let checkpoint = Checkpoint::new(graph);
+        let mut session = Session::new(checkpoint);
+        session
+            .mutate(Mutation::UpdateEntry {
+                id: cause.clone(),
+                name: FieldUpdate::Unchanged,
+                description: FieldUpdate::Set("updated cause".to_owned()),
+                explanation: FieldUpdate::Unchanged,
+            })
+            .unwrap();
+
+        let obligation = session.obligations().pending().next().unwrap().id().clone();
+        session
+            .justify(
+                obligation.clone(),
+                argument.clone(),
+                Mutation::UpdateEntry {
+                    id: target.clone(),
+                    name: FieldUpdate::Unchanged,
+                    description: FieldUpdate::Set("updated target".to_owned()),
+                    explanation: FieldUpdate::Unchanged,
+                },
+            )
+            .unwrap();
+
+        match session.obligations().get(&obligation).unwrap().status() {
+            | ObligationStatus::AwaitingApproval(justification) => {
+                assert_eq!(justification.entry(), &target);
+                assert_eq!(justification.argument_entry(), &argument);
+            }
+            | status => panic!("unexpected status: {status:?}"),
+        }
     }
 }

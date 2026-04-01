@@ -36,12 +36,16 @@ impl GrepGrounding {
         Self { patterns }
     }
 
+    /// The search patterns used by this grounding.
     pub fn patterns(&self) -> &[SearchPattern] {
         &self.patterns
     }
 }
 
 /// A single search pattern used in grep grounding.
+///
+/// Search patterns carry executable search syntax rather than descriptive
+/// prose, so they remain inline data instead of pointing at entries.
 #[derive(Clone, Debug)]
 pub enum SearchPattern {
     /// Regular expression.
@@ -69,6 +73,7 @@ pub struct TelescopeAnchor {
 }
 
 impl TelescopeAnchor {
+    /// Construct an anchor for the given entry.
     pub fn new(entry_id: EntryId) -> Self {
         Self { entry_id }
     }

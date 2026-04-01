@@ -3,6 +3,10 @@
 //! Each entry represents a single claim about the codebase — an invariant,
 //! a design decision, a module's purpose, a data representation choice, or
 //! any other isolable piece of understanding.
+//!
+//! Entries are the only durable owner of dedicated explanatory text in the
+//! graph. Other concepts may carry executable syntax or identifiers, but they
+//! refer back to entries whenever they need human-readable narration.
 
 use smol_str::SmolStr;
 
@@ -39,7 +43,8 @@ impl std::fmt::Display for EntryId {
 /// A single claim about the codebase with nominal identity.
 ///
 /// Invariant: `id` is immutable after construction. Name, description, and
-/// explanation may be updated through controlled mutation.
+/// explanation are the entry's text payload and may be updated through
+/// controlled mutation.
 #[derive(Clone, Debug)]
 pub struct Entry {
     /// Unique nominal identifier. Immutable after construction.
@@ -66,18 +71,22 @@ impl Entry {
         self
     }
 
+    /// The entry's nominal identifier.
     pub fn id(&self) -> &EntryId {
         &self.id
     }
 
+    /// The optional human-readable concept name.
     pub fn name(&self) -> Option<&str> {
         self.name.as_deref()
     }
 
+    /// The concise summary of the entry's claim.
     pub fn description(&self) -> &str {
         &self.description
     }
 
+    /// The full account of the entry's content and rationale.
     pub fn explanation(&self) -> &str {
         &self.explanation
     }

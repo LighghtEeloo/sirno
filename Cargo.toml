@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 smol_str = "0.3.6"
 thiserror = "2"
+tracing = "0.1"
