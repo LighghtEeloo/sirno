@@ -4,6 +4,14 @@
 
 Sirno is a graph-shaped knowledge database for codebases. It mediates between abstract design knowledge and concrete code through a structured graph of named, agent-maintained knowledge units. Agents consult and update the graph as part of any code-touching operation, keeping design and implementation in agreement.
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/sirno-20260401.png" width="40%">
+    <source media="(prefers-color-scheme: light)" srcset="assets/sirno-nb-20260401.png" width="40%">
+    <img src="assets/sirno-nb-20260401.png" width="40%">
+  </picture>
+</p>
+
 ---
 
 ## Core Concepts
