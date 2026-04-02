@@ -6,18 +6,6 @@ Sirno is a graph-shaped knowledge database for codebases. It mediates between ab
 
 ---
 
-## Sirno Data Representation
-
-A Sirno-managed project has a project root containing `Sirno.toml`. Together with the configured data directory, these files form the Sirno data representation. If the setting is absent, the data directory defaults to `.sirno` relative to the project root.
-
-The Sirno data representation is the durable form of the current Sirno graph. The data directory is a flat directory of Markdown files. Each file represents one entry. The file stem is the entry id, so entry ids are serialized as portable single path segments rather than hierarchical paths. The layout is flat because entry ids are nominal: directory structure does not carry graph meaning.
-
-Each entry file in the Sirno data representation begins with a machine-readable JSON header followed by a Markdown body. The header stores only state with a unique ownership rule. Entry-local fields, groundings, and lock state are owned by the entry itself. A dependency `X → Y` is owned by `X`. An affinity `X ↝ Y` is also owned by `X`. The body stores the entry's explanation text.
-
-The Sirno data representation is the ground truth for a Sirno project. The in-memory graph, sessions, patches, and obligations are operational views derived from it. If Sirno keeps caches or indexes, they are derived data and may be rebuilt from the Sirno data representation.
-
----
-
 ## Core Concepts
 
 ### Entry
@@ -80,6 +68,18 @@ An obligation remains pending until an agent discharges it through confirmation,
 ### Coherence
 
 A graph state is coherent when every obligation has been discharged, every locked-entry mutation has received approval, and every grounding has been validated under the commit-time grounding validator. Coherence is the well-formedness invariant of the knowledge graph: the analogue of well-typedness for the system as a whole.
+
+---
+
+## Sirno Data Representation
+
+A Sirno-managed project has a project root containing `Sirno.toml`. Together with the configured data directory, these files form the Sirno data representation. If the setting is absent, the data directory defaults to `.sirno` relative to the project root.
+
+The Sirno data representation is the durable form of the current Sirno graph. The data directory is a flat directory of Markdown files. Each file represents one entry. The file stem is the entry id, so entry ids are serialized as portable single path segments rather than hierarchical paths. The layout is flat because entry ids are nominal: directory structure does not carry graph meaning.
+
+Each entry file in the Sirno data representation begins with a machine-readable JSON header followed by a Markdown body. The header stores only state with a unique ownership rule. Entry-local fields, groundings, and lock state are owned by the entry itself. A dependency `X → Y` is owned by `X`. An affinity `X ↝ Y` is also owned by `X`. The body stores the entry's explanation text.
+
+The Sirno data representation is the ground truth for a Sirno project. The in-memory graph, sessions, patches, and obligations are operational views derived from it. If Sirno keeps caches or indexes, they are derived data and may be rebuilt from the Sirno data representation.
 
 ---
 
@@ -163,20 +163,20 @@ For cyclic dependencies, the entries in a strongly connected component must be r
 
 ## Summary of Concepts
 
-| Concept       | Role                                                      |
-|---------------|-----------------------------------------------------------|
-| Entry         | Primitive knowledge unit with nominal identity            |
-| Dependency    | Directed causal edge; validity contingency                |
-| Affinity      | Directed navigational edge; epistemic context             |
-| Grounding     | Entry-to-code mapping (grep or telescope)                 |
-| Lifting       | Code-to-entry abstraction; inverse of grounding           |
-| Witness       | Telescope-grounded evidence for an entry's claim          |
-| Obligation    | Proof burden from mutation, propagated along edges        |
-| Coherence     | Well-formedness invariant on the graph state              |
-| Polarity      | Per-entry direction-of-authority guidance                 |
-| Lock          | Write capability guard requiring reviewer approval        |
-| Justification | Deferred locked-entry mutation plus its argument entry    |
-| Checkpoint    | Immutable coherent snapshot of the full graph             |
-| Patch         | Pending transaction accumulating session mutations        |
-| Session       | Working interval between checkpoints                      |
-| Commit        | Promotion of a patch to a new checkpoint                  |
+| Concept       | Role                                                   |
+| ------------- | ------------------------------------------------------ |
+| Entry         | Primitive knowledge unit with nominal identity         |
+| Dependency    | Directed causal edge; validity contingency             |
+| Affinity      | Directed navigational edge; epistemic context          |
+| Grounding     | Entry-to-code mapping (grep or telescope)              |
+| Lifting       | Code-to-entry abstraction; inverse of grounding        |
+| Witness       | Telescope-grounded evidence for an entry's claim       |
+| Obligation    | Proof burden from mutation, propagated along edges     |
+| Coherence     | Well-formedness invariant on the graph state           |
+| Polarity      | Per-entry direction-of-authority guidance              |
+| Lock          | Write capability guard requiring reviewer approval     |
+| Justification | Deferred locked-entry mutation plus its argument entry |
+| Checkpoint    | Immutable coherent snapshot of the full graph          |
+| Patch         | Pending transaction accumulating session mutations     |
+| Session       | Working interval between checkpoints                   |
+| Commit        | Promotion of a patch to a new checkpoint               |
