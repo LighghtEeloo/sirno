@@ -127,7 +127,7 @@ A patch is the accumulated record of all proposed mutations during a session. It
 
 A session is the working interval between two checkpoints. It loads the current Sirno data representation into a mutable working graph. All mutations during the interval flow through the session, which applies each mutation to the working copy, records it in the patch, and generates obligations when entry content changes. The working state is visible only to the active session; other observers see the last checkpoint.
 
-Only entry-content mutations (updates to an entry's name, description, or explanation, and entry removal) generate obligations. Structural mutations (edge changes, grounding attachments, lock state) do not. When an entry is removed, its dependents are captured before the removal deletes the associated edges.
+Only entry mutations (updates to an entry's name, description, or explanation, and entry removal) generate obligations. Structural mutations (edge changes, grounding attachments, lock state) do not. When an entry is removed, its dependents are captured before the removal deletes the associated edges.
 
 The session tracks which entries have been examined during obligation discharge as a *visited set*. When a discharge generates obligations on an already-visited entry, the obligation is still created — the entry may need re-examination in a cycle — but the visited set allows the agent to detect re-entry and adjust its strategy. The session provides this state; it does not impose traversal order. The agent drives the iteration.
 
