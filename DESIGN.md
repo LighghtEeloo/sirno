@@ -14,6 +14,16 @@ Sirno is a graph-shaped knowledge database for codebases. It mediates between ab
 
 ---
 
+## Motivation
+
+Codebases accumulate knowledge that does not appear in their syntax: invariants on valid states, decisions that foreclose design alternatives, and rationale for structural choices. This knowledge governs correctness and evolution. It has no structured representation in the artifacts that version-control systems track.
+
+In its absence, knowledge migrates into comments, commit messages, and design documents that are disconnected from each other and from the code they describe. A change to code or to a recorded claim has no mechanism to identify which other claims must be re-examined. Consistency between knowledge and code is unverifiable.
+
+Sirno provides the structured representation. Entries name individual claims. Dependencies record causal relationships among them. Groundings bind entries to code locations. Obligations make the effect of a mutation explicit and propagate it to dependent claims. The coherence invariant defines when the resulting graph state is self-consistent.
+
+---
+
 ## Core Concepts
 
 ### Entry
