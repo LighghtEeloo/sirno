@@ -89,7 +89,8 @@ pub enum SessionError {
 /// All mutations during a working interval flow through the session, which
 /// maintains a working copy of the graph (base + applied mutations), records
 /// mutations in a patch, and generates obligations from dependency edges when
-/// entry content changes.
+/// entry content changes. The session enforces lock constraints on entry
+/// mutations. Structural mutations are not constrained by locks.
 ///
 /// Obligation generation rule: Only entry mutations generate
 /// obligations. Entry mutations are `UpdateEntry` and `RemoveEntry`,
@@ -167,6 +168,10 @@ impl Session {
     /// Records the mutation in the patch. For entry mutations
     /// (`UpdateEntry`, `RemoveEntry`), generates obligations on all
     /// dependent entries. Fails if the mutation targets a locked entry.
+    ///
+    /// Locks protect entry content, not structure: entry mutations
+    /// on locked entries are blocked, but structural mutations (edges,
+    /// groundings, lock/unlock operations) are allowed.
     pub fn mutate(&mut self, mutation: Mutation) -> Result<(), SessionError> {
         // Check lock constraint for entry mutations.
         match &mutation {
