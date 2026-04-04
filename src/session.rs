@@ -92,17 +92,16 @@ pub enum SessionError {
 /// entry content changes. The session enforces lock constraints on entry
 /// mutations. Structural mutations are not constrained by locks.
 ///
-/// Obligation generation rule: Only entry mutations generate
-/// obligations. Entry mutations are `UpdateEntry` and `RemoveEntry`,
-/// which modify an entry's explanatory content. Structural mutations —
-/// edge additions/removals, grounding attachments, lock/unlock operations —
-/// do not generate obligations because they do not change what an entry
-/// claims, only how entries relate.
+/// Only entry mutations generate obligations. Entry mutations are `UpdateEntry`
+/// and `RemoveEntry`, which modify an entry's explanatory content. Structural
+/// mutations — edge additions/removals, grounding attachments, lock/unlock
+/// operations — do not generate obligations because they do not change what an
+/// entry claims, only how entries relate.
 ///
 /// The agent drives the obligation discharge iteration: it queries pending
 /// obligations, picks which to examine, and calls the appropriate discharge
-/// method. The session tracks visited entries for cycle detection but does
-/// not impose traversal order.
+/// method. The session tracks visited entries for cycle detection but does not
+/// impose traversal order.
 #[derive(Clone, Debug)]
 pub struct Session {
     /// The frozen base checkpoint.
