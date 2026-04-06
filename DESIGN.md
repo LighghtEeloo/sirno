@@ -168,7 +168,7 @@ The grounding validator is part of the commit context. A structural validator ch
 When an entry X is mutated within a session:
 
 1. For each dependency edge X → Y, an obligation is generated on Y.
-2. The agent examines Y in context of the new X.
+2. The agent examines Y in context of the new X and the edge.
 3. If Y requires no change, the obligation is discharged.
 4. If Y is updated, the obligation is discharged and step 1 recurs with Y.
 5. If Y is locked, the agent produces a justification and the obligation remains pending until approval is granted and the update is applied.
