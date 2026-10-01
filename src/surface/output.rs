@@ -469,12 +469,6 @@ pub(crate) fn print_mist_intake_result(result: &MistIntakeResult) {
     }
 }
 
-#[cfg(test)]
-#[allow(dead_code)]
-pub(crate) fn format_render_result(result: &RenderResult) -> String {
-    format_render_result_with_style(result, OutputStyle::Plain)
-}
-
 fn format_render_result_with_style(result: &RenderResult, style: OutputStyle) -> String {
     if result.diagnostics.is_empty() {
         return format!("{}\n", result.message);
@@ -514,12 +508,6 @@ fn append_mist_status_rows(
 
 pub(crate) fn print_config_comment_result(result: &ConfigCommentResult) {
     anstream::print!("{}", format_config_comment_result_with_style(result, OutputStyle::Styled));
-}
-
-#[cfg(test)]
-#[allow(dead_code)]
-pub(crate) fn format_config_comment_result(result: &ConfigCommentResult) -> String {
-    format_config_comment_result_with_style(result, OutputStyle::Plain)
 }
 
 fn format_config_comment_result_with_style(
@@ -663,12 +651,6 @@ pub(crate) fn format_path_table(records: &[PathRecord]) -> String {
     format_human_table(headers, rows)
 }
 
-#[cfg(test)]
-#[allow(dead_code)]
-pub(crate) fn format_skill_wrapper_table(records: &[SkillWrapperRecord]) -> String {
-    format_skill_wrapper_table_with_style(records, OutputStyle::Plain)
-}
-
 pub(crate) fn format_skill_wrapper_table_for_terminal(records: &[SkillWrapperRecord]) -> String {
     format_skill_wrapper_table_with_style(records, OutputStyle::Styled)
 }
@@ -768,14 +750,6 @@ fn format_human_table_with_style<'a>(
         .map(|row| row.into_iter().map(str::to_owned).collect::<Vec<_>>())
         .collect::<Vec<_>>();
     format_human_table_with_width_and_style(headers, rows, None, style)
-}
-
-#[cfg(test)]
-#[allow(dead_code)]
-pub(crate) fn format_human_table_with_width(
-    headers: Vec<String>, rows: Vec<Vec<String>>, width: Option<u16>,
-) -> String {
-    format_human_table_with_width_and_style(headers, rows, width, OutputStyle::Plain)
 }
 
 pub(crate) fn format_human_table_semantic_with_width(

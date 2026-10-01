@@ -377,10 +377,9 @@ fn table_header(line: &str) -> Option<(ConfigSection, bool)> {
     let trimmed = line.trim();
     let (inner, array) = if let Some(rest) = trimmed.strip_prefix("[[") {
         (rest.split_once("]]")?.0, true)
-    } else if let Some(rest) = trimmed.strip_prefix('[') {
-        (rest.split_once(']')?.0, false)
     } else {
-        return None;
+        let rest = trimmed.strip_prefix('[')?;
+        (rest.split_once(']')?.0, false)
     };
     let top = inner.split('.').next()?.trim().trim_matches('"').trim_matches('\'');
     let section = ConfigSection::from_name(top)?;

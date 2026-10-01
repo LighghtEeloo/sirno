@@ -17,14 +17,6 @@ pub(crate) fn rg_args_to_strings(args: Vec<OsString>) -> Result<Vec<String>, Com
     args.into_iter().map(|arg| arg.into_string().map_err(CommandError::RgArgumentNotUtf8)).collect()
 }
 
-#[cfg(test)]
-#[allow(dead_code)]
-pub(crate) fn rg_args_include_preprocessor(args: &[OsString]) -> bool {
-    args.iter()
-        .filter_map(|arg| arg.to_str())
-        .any(|arg| arg == "--pre" || arg.starts_with("--pre="))
-}
-
 pub(crate) fn resolve_lake_path_for_rg(
     lake_path: Option<&Path>, config_path: &Path,
 ) -> Result<PathBuf, CommandError> {

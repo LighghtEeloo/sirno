@@ -6,7 +6,7 @@ ignore = [".obsidian"]
 
 [repo]
 # Repository files, directories, or globs scanned for witness blocks.
-members = ["src", "README.md"]
+members = ["src", "README.md", ".github/workflows/ci.yml"]
 
 [witness]
 # Witness delimiter regex pairs; each first capture group is the entry address.
@@ -18,3 +18,7 @@ end = '(?m)^[ \t]*//[ \t]*sirno:witness:([^\x00-\x1F\x7F<>:"/\\|?*,\r\n]+):end'
 [[witness.delimiters]]
 begin = '(?m)^[ \t]*<!--[ \t]*sirno:witness:([^\x00-\x1F\x7F<>:"/\\|?*,\r\n]+):begin[ \t]*-->'
 end = '(?m)^[ \t]*<!--[ \t]*sirno:witness:([^\x00-\x1F\x7F<>:"/\\|?*,\r\n]+):end[ \t]*-->'
+
+[[witness.delimiters]]
+begin = '(?m)^[ \t]*#[ \t]*sirno:witness:([^\x00-\x1F\x7F<>:"/\\|?*,\r\n]+):begin'
+end = '(?m)^[ \t]*#[ \t]*sirno:witness:([^\x00-\x1F\x7F<>:"/\\|?*,\r\n]+):end'

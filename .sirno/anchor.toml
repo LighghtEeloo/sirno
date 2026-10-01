@@ -740,6 +740,15 @@ prerequisite = [
 ]
 refines = ["methodology"]
 
+[entries.repository-verification]
+fingerprint = "sha256:ae32e9acbdb352d5c093a5e68dd5ca714d11505c8e912757dddb8f93fe767eb8"
+belongs = ["lake-review"]
+prerequisite = [
+    "lake-review",
+    "readme",
+]
+refines = ["project-self-application"]
+
 [entries.reservoir]
 fingerprint = "sha256:cb2f79a6e3a2d64599b8ce932d5b022e9b4748574b864e059b0d0885de1567e1"
 belongs = ["lake"]

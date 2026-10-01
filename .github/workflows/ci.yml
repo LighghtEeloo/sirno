@@ -1,0 +1,39 @@
+name: CI
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTUP_TOOLCHAIN: stable
+
+jobs:
+  # sirno:witness:repository-verification:begin
+  verify:
+    # Freeze tests use immutable flags that file owners can set on macOS.
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up Rust
+        run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Test
+        run: cargo test --locked
+      - name: Lint
+        run: cargo clippy --locked --all-targets -- -D warnings
+      - name: Build
+        run: cargo build --locked
+      - name: Check README walkthrough
+        run: python3 scripts/smoke-readme.py target/debug/sirno
+      - name: Validate lake
+        run: |
+          target/debug/sirno mist render
+          target/debug/sirno status --mode review
+          git diff --exit-code
+  # sirno:witness:repository-verification:end
