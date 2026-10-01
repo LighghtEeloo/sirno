@@ -3,292 +3,238 @@
 *Semantic Intermediate Representation of Nominal Objects*
 
 <!-- sirno:witness:readme:begin -->
-Sirno is a development harness for project design.
-Its full name is literal: a Semantic Intermediate Representation of Nominal Objects.
-It is *semantic* because entries carry design meaning.
-It is *intermediate* because the *lake* sits between intent and implementation.
-It is a *representation* because entries, structural links, and witnesses give that meaning form.
-It is *nominal* because each design *object* is named first by an entry id.
+Sirno keeps project design in small, named Markdown entries and connects those entries to repository evidence.
+Its Rust library, CLI, and MCP server let people and agents query the design,
+inspect its implementation, and review related entries when it changes.
 
-- *Lake*: a queryable, misty collection of Markdown *entries*.
-- *Entry*: a named design object whose id acts as a symbol.
-- *Witness*: a link from a design claim back to the code, tests, config files, or assets it describes.
-- *Tide*: the design review worklist for structural ripples across the *lake*,
-  preventing locally reasonable changes from settling into suboptimal global design.
+- A *lake* holds the project's design entries and structural links.
+- A *witness* identifies code, tests, configuration, or assets that support an entry's claim.
+- *Tide* lists related entries to review after a design change.
+- *Anchor* records the accepted design baseline.
 
-This is the dawn of documentation-driven development.
+The entry states the claim. The witness locates evidence. People judge whether the evidence supports the claim.
 <!-- sirno:witness:readme:end -->
 
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/sirno-20260401.png" width="40%">
     <source media="(prefers-color-scheme: light)" srcset="assets/sirno-nb-20260401.png" width="40%">
-    <img src="assets/sirno-nb-20260401.png" width="40%">
+    <img src="assets/sirno-nb-20260401.png" width="40%" alt="Sirno mascot">
   </picture>
 </p>
 
-## TL;DR
-
 <!-- sirno:witness:readme:begin -->
-If you've heard of *RAG*, Sirno is *human-readable RAG* that evolves naturally along with the project,
-avoiding cache invalidation, infamously one of the two major headaches in computer science
-(followed by naming variables, and off-by-one errors).
+## Quick Start
 
-If you've heard of *literate programming*, Sirno gives you the same unified view of design and implementation,
-but less invasive and plays well with pre-existing codebases,
-because Sirno doesn't actually require them to be in the same file;
-it merely adds comments and git-friendly textual trackers in the codebase.
-
-If you've heard of *hardware-software co-design*, Sirno push forward the agenda of *documentation-codebase co-design*.
-There are plenty of tools that try to generate a knowledge base "out of" a codebase,
-but we envision that the code should actively help the documentation.
-Instead of extracting a digest out of a codebase once and for all,
-Sirno facilitates documentation and codebase co-evolution, in a holistic workspace.
-
-If you've heard of *harness engineering*,
-Sirno is a documentation harness that keeps design readable, connected, and resilient to drift.
-No more vibe-coded slop that only the author can understand -- or should we say not even the author can understand?
-
-If you've heard of *{spec/test/intent}-driven development*,
-Sirno believes in all of them, and integrates these ideas and just considers them documentations of different aspects.
-Details should be so abundant that the codebase can be trivially recovered from the documentation alone.
-
-This is what we call *documentation-driven development*. Any novelty should be contained in the documentation itself.
-Documentation should be able to choose its own form and representation.
-If a program is the best form for expressing an algorithm or even a particular design idea, then so be it.
-
-Sirno keeps project design in a queryable *lake* of small, named Markdown *entries*.
-Each entry has a stable id, structural links, and witnesses linking back to code, tests, or assets,
-so the design stays readable, connected, and resistant to drift.
-<!-- sirno:witness:readme:end -->
-
-<!-- sirno:witness:readme:begin -->
-<details>
-<summary>
-If you'd like to see for yourself how Sirno's idea works directly on the documentation of Sirno itself...
-</summary>
-Clone the repo and start with an interactive onboarding session,
-which not only installs Sirno (revertably of course lol) and sets up the MCP server for you,
-but also guides you through the design of Sirno itself.
-
-First, in an agent session inside the repo, send this prompt to install Sirno and register the MCP server:
-
-```text
-Check that you're in the sirno repository right now.
-Use $sirno-bootstrap to install Sirno and setup MCP in this repository if not already done.
-```
-
-Then restart your agent so the `sirno` MCP server loads,
-and start the introduction session in the fresh conversation:
-
-```text
-Start an introduction session with $sirno-narrative-session based on .sirno/lake/introduction.md:
-I am new to Sirno. Ask about my background and goals. Guide me through the entries I should care about.
-```
-</details>
-<!-- sirno:witness:readme:end -->
-
-## Setup Sirno and Quick Start
-
-<details>
-<summary>Install Sirno and drive it from your agent through the bundled MCP server. Or use the CLI directly.</summary>
-
-<!-- sirno:witness:readme:begin -->
+Install Sirno with Rust's package manager:
 
 ```sh
 cargo install sirno
 ```
 
-Setup completion if you like:
+The example below creates a small project, witnesses its greeting implementation,
+and completes a design change through review and baseline acceptance.
+Run the steps in order in a new directory.
+
+### 1. Create the design
 
 ```sh
-source <(sirno util completion zsh)   # or bash, fish, powershell
-# or if you want to guard it:
-# command -v sirno &>/dev/null && source <(sirno util completion zsh)
+mkdir sirno-demo
+cd sirno-demo
+sirno init --all
+mkdir src
+printf '\n[repo]\nmembers = ["src"]\n' >> Sirno.toml
+
+sirno entry new greeting \
+  --intrinsic name="Greeting" \
+  --intrinsic desc="The command's greeting"
+printf '\nThe command prints a greeting to standard output.\n' >> .sirno/lake/greeting.md
 ```
 
-To use it, initialize it in your project:
+Initialization creates `Sirno.toml`, six seed entries in `.sirno/lake/`, and agent skill wrappers.
+The `[repo]` section selects source files for witness lookup.
+
+Each project defines its structural relations.
+Add a `prerequisite` relation whose `from` policy asks dependent entries to be reviewed when their prerequisite changes:
 
 ```sh
-sirno init
+cat > .sirno/lake/prerequisite.md <<'ENTRY'
+---
+name: Prerequisite
+desc: Knowledge an entry depends on.
+meta.type: "structural"
+meta.ripple.lake: ["from"]
+meta.ripple.anchor: ["from"]
+---
+
+When a prerequisite changes, review entries that depend on it.
+ENTRY
+
+sirno entry new usage \
+  --intrinsic name="Usage" \
+  --intrinsic desc="Running the greeting command" \
+  --structural prerequisite=greeting
+printf '\nRun `node src/greeting.js` to print the greeting.\n' >> .sirno/lake/usage.md
 ```
 
-which opens an interactive setup plan. The full plan creates:
+`usage` now depends on `greeting`.
+The lake contains nine entries: the six seeds and the three just created.
 
-- a *lake* (documentation directory)
-- `Sirno.toml` (project level configuration)
-- `.sirno/` control files for Anchor and Tide state
-- a few wrapper skills that teach your agent how to talk to the MCP server
+### 2. Witness the implementation and accept a baseline
 
-Use `sirno init --all` to run the full setup without prompts.
-Use `sirno init --all --claude-skills` to also link those wrappers into `.claude/skills`.
-You may also recreate them separately later with their own commands.
-
-### For LLM: in MCP
-
-Register the stdio MCP server with your agent.
-
-For Codex, register the server from the project root:
+Write a JavaScript source file with a witness block, then inspect it:
 
 ```sh
+printf '%s\n' \
+  '// sirno:witness:greeting:begin' \
+  'console.log("Hello, world.");' \
+  '// sirno:witness:greeting:end' > src/greeting.js
+sirno entry witness greeting --full
+sirno mist render
+sirno anchor update
+```
+
+Witness output shows the marked region in `src/greeting.js`.
+Rendering creates the browsable `sirno-lake/` projection.
+The first Anchor update accepts the initial design and reports:
+
+```text
+anchored 9 entries in .sirno/anchor.toml
+```
+
+### 3. Change the design and inspect the review work
+
+Require the greeting to include the project name, and update the source:
+
+```sh
+printf '\nThe greeting includes the project name.\n' >> .sirno/lake/greeting.md
+printf '%s\n' \
+  '// sirno:witness:greeting:begin' \
+  'console.log("Hello, Sirno.");' \
+  '// sirno:witness:greeting:end' > src/greeting.js
+sirno tide status
+```
+
+Tide lists `usage` with reason `greeting` and reports one open workitem.
+`sirno tide status` exits with code 1 while that review is pending.
+Read the dependent entry and inspect the updated evidence:
+
+```sh
+cat .sirno/lake/usage.md
+sirno entry witness greeting --full
+```
+
+The instruction in `usage` still runs the same command,
+and the witness now prints `Hello, Sirno.`.
+The dependent entry needs no change.
+
+### 4. Complete review and accept the change
+
+```sh
+sirno tide resolve usage
+sirno mist render
+sirno anchor update
+sirno status --mode review
+```
+
+The final command reports:
+
+```text
+status clean: 9 entries in .sirno/lake
+```
+
+Resolving records the review; Anchor accepts the current design and clears the completed Tide state.
+If the design changes again before acceptance, its affected review obligations reopen.
+<!-- sirno:witness:readme:end -->
+
+<!-- sirno:witness:readme:begin -->
+## Where to Edit
+
+`.sirno/lake/` is the canonical design source.
+The quick start edits those files directly and runs `sirno mist render` to refresh `sirno-lake/`.
+
+`sirno-lake/` is an editable projection with generated navigation links.
+To work there, render it first, edit its entry prose or metadata,
+then run `sirno mist status` and `sirno mist intake` to bring the edits into the reservoir.
+Intake also refreshes the projection.
+Choose one editing surface for a change and keep Sirno-owned footer regions intact.
+
+`sirno status --mode edit` checks work in progress; `--mode review` applies the review boundary.
+Status reports pending review and projection work as well as structural errors,
+and suggests the next command when work remains.
+Use `sirno status --show normal` for separate lake, Tide, Anchor, and mist details.
+<!-- sirno:witness:readme:end -->
+
+<!-- sirno:witness:readme:begin -->
+## Use Sirno with an Agent
+
+`sirno init --all` installs wrappers in `.agents/skills/` that load project-aware instructions from Sirno MCP.
+Use `sirno init` for interactive setup,
+or add `--claude-skills` to link wrappers into `.claude/skills/`.
+
+Register the stdio server from the project root with your agent:
+
+```sh
+# Codex
 codex mcp add sirno -- sirno util mcp
-```
 
-For Claude Code:
-
-```sh
+# Claude Code
 claude mcp add sirno -- sirno util mcp
 ```
 
-For agents that read an MCP config file directly, add an equivalent stdio server:
+Restart the agent to load the connection.
+For other clients, use `sirno` as the stdio command with arguments `["util", "mcp"]`.
+Ask the agent to use `$sirno-editor` for project work;
+the skill starts from the configured lake and follows the relevant design entries and witnesses.
 
-```json
-{
-  "mcpServers": {
-    "sirno": {
-      "command": "sirno",
-      "args": ["util", "mcp"]
-    }
-  }
-}
-```
+<details>
+<summary>Explore Sirno's own design with an agent</summary>
 
-Edit the generated Markdown, then ask the agent to re-query and re-check.
-Add a `sirno:witness:architecture:begin` block in code to link evidence back to the entry,
-and inspect it with `sirno_entry_witness`.
-
-
-### For Human: in CLI
-
-Start a *lake* of your own:
-
-```sh
-sirno init                                   # choose config, lake, skills
-sirno new architecture \
-  --intrinsic name="Architecture" \
-  --intrinsic desc="How the system is structured" # create one entry
-sirno status --mode edit                     # check while editing; dangling refs are warnings
-```
-
-Edit the generated Markdown under the lake path, then re-run `status`.
-Add a `sirno:witness:architecture:begin` and `sirno:witness:architecture:end` block in code
-to link evidence back to the entry.
-
-*Tide* is the design review worklist for structural ripples.
-Editing one entry ripples to its structural neighbors;
-*tide* tracks those as workitems you resolve while reviewing a design edit,
-so locally reasonable changes do not settle into suboptimal design.
-
-```sh
-sirno tide status                            # entry ids that still need review
-sirno tide status --show full                # full open workitems
-sirno resolve <entry-id>                     # mark a workitem reviewed
-sirno reset                                  # clear all tide resolutions
-```
-
-Explore an existing lake; this repository keeps its current design source in `.sirno/lake/`.
-The default misty workspace renders to `sirno-lake/`.
-
-```sh
-sirno status                                 # project, lake, Anchor, Tide, and mist summary
-sirno mist status                            # pending mist ripples and stale projection state
-sirno mist intake                            # accept edited misty-lake entries into the reservoir
-sirno mist render                            # render the default misty lake workspace
-sirno status --mode review                   # review boundary; dangling refs are errors
-sirno query --columns id,desc                # list entry ids and the discovered desc field
-sirno query --has category=meta              # filter by structural link target
-sirno witness readme --full                  # show how this README witnesses its own intention
-```
-
-<!-- sirno:witness:readme:end -->
-
-</details>
-
-<!-- sirno:witness:readme:begin -->
-## Minute Motivation
-
-Design work has a familiar failure mode.
-It begins as a clear explanation,
-then scatters across code, tests, comments, review threads,
-and the memory of whoever last touched the project.
-The next person or agent has to reconstruct the design before making a responsible change.
-
-Sirno gives that missing middle a named form.
-It keeps design in a *lake* of compact Markdown *entries*:
-prose small enough to read locally,
-metadata exact enough to query,
-and ids stable enough to cite from code, review, or automation.
-<!-- sirno:witness:readme:end -->
-
-<!-- sirno:witness:readme:begin -->
-## Our Thoughts, Our Ambitions, The Principles We Would Follow.
-
-Sirno follows a few guiding principles that wishes to help the project reach its goal, quoting Melina from Elden Ring.
-<!-- sirno:witness:readme:end -->
-
-<!-- sirno:witness:readme:begin -->
-### Concept-Driven Documentation
-
-Sirno makes documentation compressed and comprehensive through concept-driven development.
-Important ideas become named *entries*.
-Each *entry* is small enough to read in place,
-but precise enough to connect with other entries through metadata.
-Comprehensive documentation becomes a graph of durable concepts,
-not one long page that every reader has to hold in memory.
-<!-- sirno:witness:readme:end -->
-
-<!-- sirno:witness:readme:begin -->
-### Repository Witness
-
-Documentation should not float away from the repository.
-Sirno lets repository artifacts witness *entry* claims by entry id.
-The design stays in prose,
-the evidence stays in code, tests, configuration, generated files, or assets,
-and the shared id lets a reviewer move between them mechanically.
-<!-- sirno:witness:readme:end -->
-
-<!-- sirno:witness:readme:begin -->
-### Meta Documentation
-
-A Sirno-managed project can document its own documentation method.
-Entries categorized by `meta` define vocabulary, reader routes, splitting habits,
-term style,
-and local rules for how the *lake* should grow.
-The documentation paradigm can live inside the project documentation itself.
-<!-- sirno:witness:readme:end -->
-
-<!-- sirno:witness:readme:begin -->
-### Interactive Narrative
-
-Understanding is a deeply personalized journey.
-An interactive narrative turns the *lake* into a route shaped around the reader's background and goals.
-It chooses which entries to visit first, which details to defer,
-and when to stop and assess learning retention.
-
-Try it with our repository-local narrative-session skill:
+Clone this repository and start an agent session inside it.
+First install Sirno and register its MCP server:
 
 ```text
-Use $sirno-narrative-session for an introduction session based on .sirno/lake/introduction.md.
-I am new to Sirno. Ask about my background and goals. Guide me through the entries I should care about.
+Use $sirno-bootstrap to install Sirno and set up MCP in this repository if needed.
 ```
+
+Restart the agent, then begin the guided tour:
+
+```text
+Use $sirno-narrative-session based on .sirno/lake/introduction.md.
+I am new to Sirno. Ask about my background and goals, then guide me through the relevant entries.
+```
+
+</details>
+<!-- sirno:witness:readme:end -->
+
+<!-- sirno:witness:readme:begin -->
+## Design Principles
+
+Sirno addresses the design knowledge that otherwise scatters across source, documents, and review conversations.
+Named entries give that knowledge a durable home while keeping implementation evidence in its original files.
+
+- **Concept-driven documentation:** small entries preserve local meaning; structural links make them queryable.
+- **Repository witnesses:** a shared entry id connects a design claim to evidence that a reviewer can inspect.
+- **Project-owned method:** `meta` entries describe the project's vocabulary, documentation rules, and review habits.
+- **Narrative routes:** ordered entry selections explain the design for a reader's task and background.
+
+Read [.sirno/lake/introduction.md](.sirno/lake/introduction.md) for the first route through this project's design,
+then [.sirno/lake/methodology.md](.sirno/lake/methodology.md) for its working method.
 <!-- sirno:witness:readme:end -->
 
 <!-- sirno:witness:readme:begin -->
 ## Status
 
-Sirno currently provides a Rust library, both CLI and MCP for Markdown entry storage,
-project configuration, structural checks, generated footers,
-querying, lake-local ripgrep search, witness lookup over `mosaika`, entry freezing,
-and Tide review tracking.
-
-Future interfaces may add lightweight GUI, or Obsidian integration.
-
+Sirno provides a Rust library, CLI, MCP tools, and terminal interfaces.
+Its implemented core covers Markdown entry storage, querying, structural checks,
+witness lookup through `mosaika`, editable mist projections, and Anchor/Tide review tracking.
+The lake contains the detailed contracts for those operations and the broader command surface.
+Future interfaces may add a lightweight GUI or Obsidian integration.
 <!-- sirno:witness:readme:end -->
 
 ## License
 
-Sirno is distributed under either the MIT license
-or the Apache License, Version 2.0:
+Sirno is distributed under either the MIT license or the Apache License, Version 2.0:
 
 - [MIT license](LICENSE-MIT)
 - [Apache License, Version 2.0](LICENSE-APACHE)

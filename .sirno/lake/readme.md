@@ -11,130 +11,54 @@ prerequisite:
   - methodology
 ---
 
-The README is the first-impression route for Sirno.
-It earns the reader's attention with a precise definition,
-proves the idea on Sirno itself,
-then points into the *lake* for durable detail.
+The README is the first route from Sirno's purpose to a working project.
+It defines the lake, entries, witnesses, Tide, and Anchor,
+then demonstrates a complete design change before offering deeper explanation.
 
-## Opening Definition
+## Opening and Quick Start
 
-The README opens with a precise, compiler-flavored definition above the mascot image.
-It names Sirno as a development harness for project design.
-It then reads the full name literally,
-glossing each word with an `It is X because` clause:
-*semantic* because entries carry design meaning,
-*intermediate* because the *lake* sits between intent and implementation,
-*representation* because entries, structural links, and *witnesses* give that meaning form,
-and *nominal* because each design object is named first by an *entry* id.
+The opening defines Sirno through named Markdown design entries and inspectable repository evidence.
+A short vocabulary list introduces the terms needed by the walkthrough.
+The mascot follows the definition.
 
-A short feature list follows, each item led by a Sirno term:
-*lake*, *entry*, *witness*, *anchor*, and *tide*.
-The list says the *lake* is queryable and misty,
-an *entry* is a named design object whose id acts as a symbol,
-a *witness* links a design claim back to the code, tests, config files, or assets it describes,
-*anchor* records the accepted baseline,
-and *Tide* is the design review worklist between Anchor updates
-that keeps locally reasonable changes from becoming unreviewed design.
+The visible quick start runs in a new directory.
+It installs Sirno, initializes the project, creates entries, and configures a repository witness surface.
+A small relation definition and two linked entries make the review behavior observable.
+The example witnesses a greeting implementation,
+accepts an initial Anchor,
+changes the greeting design and source,
+and inspects the resulting Tide obligation on the usage entry.
+The reader reviews the dependent entry and evidence before resolving that obligation,
+refreshing the projection, and accepting the new Anchor.
+Key expected outputs identify the initial baseline, pending review, and final clean status.
+The prose explains the nonzero exit status while review remains open.
 
-The definition closes with one deliberate line:
-`This is the dawn of documentation-driven development.`
-The line is a small literary stake, not a feature claim.
-It is part of the witnessed definition because it states the README's ambition in one sentence.
+The walkthrough uses ordinary shell commands.
+Its commands should be checked together in a disposable project when the workflow changes.
+Example witness markers in shell strings remain distinct from this repository's witness delimiters.
 
-The mascot image sits immediately after the definition,
-so the reader meets the idea before the picture.
+## Editing Surfaces and Agent Setup
 
-## TL;DR, Analogy Bridge, and Onboarding Invitation
+The README identifies `.sirno/lake/` as the canonical reservoir
+and `sirno-lake/` as the default editable projection.
+Direct reservoir edits require rendering to refresh the projection.
+Projection edits require status inspection and intake, which also refreshes the projection.
+Generated footer ownership remains explicit.
 
-A `TL;DR` follows the mascot.
-It opens as an analogy bridge for readers who bring neighboring mental models.
-The block is witnessed because it names the README's rhetorical intention:
-translate Sirno into familiar vocabularies,
-then converge them into documentation-driven development and the *lake* model.
+Agent setup explains wrapper installation, stdio MCP registration, and the connection restart.
+It gives Codex and Claude Code command forms and the equivalent command and arguments for other clients.
+The editor skill is the route for project work.
+An optional self-hosted tour uses the bootstrap skill,
+then the narrative-session skill after restarting the agent.
 
-The analogies move from retrieval to representation to co-design:
-human-readable RAG that co-evolves with the project,
-literate programming's unified design and implementation view without same-file coupling,
-documentation-codebase co-design where code actively helps documentation,
-a documentation harness that resists drift and opaque vibe-coded residue,
-and spec-, test-, and intent-driven development as documentation facets.
-The close states the broad claim:
-documentation may choose its own representation,
-including programs when they explain an algorithm or design idea most directly.
+## Deeper Routes and Scope
 
-The final paragraph in that block compresses the project model into one breath:
-a queryable *lake* of small, named *entries* with stable ids, structural links,
-and *witnesses* back to *repository* artifacts.
-The intention is reader calibration:
-the README meets a reader through concepts they may already know,
-then gives the Sirno-native handle they can carry forward.
+A short principles section explains named concepts, repository witnesses,
+project-owned documentation method, and reader-shaped narrative routes.
+It links to `introduction` and `methodology` for durable design detail.
+The Status section describes the implemented interfaces and core workflow.
+Detailed command contracts remain in their local lake entries.
 
-The `TL;DR` then carries the onboarding invitation,
-which is witnessed because it is a concrete, runnable capability claim.
-The invitation tells a reader to try the idea directly on Sirno, in two prompts split by an agent restart.
-The first prompt runs `$sirno-bootstrap` to install Sirno revertably and register the MCP server.
-The reader then restarts the agent so the freshly registered `sirno` MCP server loads.
-The second prompt, in the fresh conversation, runs `$sirno-narrative-session`
-grounded in `.sirno/lake/introduction.md`.
-The restart is part of the claim:
-the MCP server only appears after the agent reloads its connections.
-Designing Sirno on Sirno is the strongest demonstration the README can offer,
-so the two-prompt block earns its own witness.
-
-## Setup and Quick Start
-
-A collapsible `Setup Sirno and Quick Start` section holds the concrete commands.
-It is one witnessed nice bit because it demonstrates Sirno's dual audience in a single place.
-The section installs with `cargo install sirno`,
-then `sirno init`, which opens an interactive setup plan.
-The full plan creates the *lake*, `Sirno.toml`, and the packaged skill wrappers together.
-It can also link those wrappers into `.claude/skills` for Claude Code.
-
-It then splits by reader:
-
-- *For LLM: in MCP* registers the stdio MCP server,
-  with explicit lines for Codex, Claude Code, and a raw MCP config file.
-- *For Human: in CLI* walks `init`, `new`, and `check`,
-  the *anchor* commands of `status`, `check`, and `update`,
-  the *tide* worklist of `status`, `resolve`, and `reset`,
-  and read-only exploration commands ending with `sirno witness readme --full`,
-  so the README shows how it witnesses its own intention.
-
-## Motivation and Principles
-
-The opening pressure is documentation drift:
-design begins as a clear explanation,
-then scatters across *repository* artifacts and the memory of whoever last touched the project.
-Sirno answers by giving design a named intermediate form.
-This section is titled `Minute Motivation`.
-The phrase is intentionally small and literary;
-it frames a brief motive, not the full design argument.
-
-The principles section may carry a small Melina allusion from Elden Ring,
-because the joke makes the invitation memorable without changing the design claim.
-It demonstrates four principles, each its own witnessed block:
-
-- Sirno makes documentation compressed and comprehensive through concept-driven development;
-  important ideas become small *entries* whose metadata keeps them connected.
-- Sirno lets documentation claims be witnessed by the *repository*;
-  the design stays in prose while the evidence stays where it is implemented, tested, configured, or generated.
-- Sirno lets a project define its own documentation paradigm through `meta` *entries*;
-  the method for growing the *lake* can live inside the *lake*.
-- Interactive narrative invites the reader into a task-shaped route;
-  it closes the sequence with a `$sirno-narrative-session` prompt grounded in `.sirno/lake/introduction.md`.
-
-## Status and Boundary
-
-The README ends with an honest `Status` section.
-It is witnessed because it is a verifiable claim about what Sirno provides today:
-a Rust library with both CLI and MCP for entry storage, configuration, structural checks,
-generated footers, querying, lake-local search, witness lookup, freezing, and Anchor baselines,
-with only a lightweight GUI or Obsidian integration named as future work.
-Witnessing this section keeps the README from overpromising as the project grows.
-
-The README should not become the whole design document.
-It gives the reader motivation, concrete commands, and a route into the *lake* for durable detail.
-
-The *repository witnesses* for this *entry* are hidden Markdown comments in `README.md`.
-They mark the opening definition, the analogy bridge, the onboarding invitation, the Quick Start section,
-the motivation, the four principle sections, and the Status section.
+The README's repository witness blocks identify its definition, complete walkthrough,
+editing guidance, agent setup, principles, and current scope.
+These regions demonstrate the reader contract stated here.
