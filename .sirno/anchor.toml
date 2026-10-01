@@ -699,7 +699,7 @@ prerequisite = [
 ]
 
 [entries.readme]
-fingerprint = "sha256:420b00afb76dfa53357557af3f34d3a1dd8c41f66179150a77c95d837fde5811"
+fingerprint = "sha256:35d9fb09f916b9ceab7cc08881c5af091a43c30ea1c164f18e6227739dd19657"
 belongs = ["narrative"]
 prerequisite = [
     "introduction",
@@ -741,12 +741,9 @@ prerequisite = [
 refines = ["methodology"]
 
 [entries.repository-verification]
-fingerprint = "sha256:ae32e9acbdb352d5c093a5e68dd5ca714d11505c8e912757dddb8f93fe767eb8"
+fingerprint = "sha256:294814f8bc87ed5a2e0f6e25a40b46a3ab7f09f5a4b1005e8831e12612bae32c"
 belongs = ["lake-review"]
-prerequisite = [
-    "lake-review",
-    "readme",
-]
+prerequisite = ["lake-review"]
 refines = ["project-self-application"]
 
 [entries.reservoir]

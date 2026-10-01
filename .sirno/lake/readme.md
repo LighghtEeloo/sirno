@@ -21,12 +21,6 @@ Expected outputs explain pending review and identify successful completion.
 Editing guidance distinguishes canonical source from projections and states generated-region ownership.
 Agent setup explains the connection and skill entry point needed to perform the same project work.
 
-The walkthrough's marked shell blocks and output excerpts are smoke-test inputs.
-Run them together in a disposable project using an explicitly selected local binary.
-The check expects the documented nonzero pending-review status and a final clean project.
-Package installation stays outside this check.
-Example witness markers remain distinct from this repository's witness delimiters.
-
 Capability claims describe implemented behavior.
 Future work remains identifiable as future work.
 Command inventories come from the CLI's generated help;

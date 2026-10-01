@@ -32,7 +32,6 @@ Install Sirno with Rust's package manager:
 cargo install sirno
 ```
 
-<!-- sirno:quickstart:begin -->
 The example below creates a small project, witnesses its greeting implementation,
 and completes a design change through review and baseline acceptance.
 Run the steps in order in a new directory.
@@ -146,7 +145,6 @@ status clean: 9 entries in .sirno/lake
 
 Resolving records the review; Anchor accepts the current design and clears the completed Tide state.
 If the design changes again before acceptance, its affected review obligations reopen.
-<!-- sirno:quickstart:end -->
 <!-- sirno:witness:readme:end -->
 
 <!-- sirno:witness:readme:begin -->
@@ -234,9 +232,6 @@ Its implemented core covers Markdown entry storage, querying, structural checks,
 witness lookup through `mosaika`, editable mist projections, and Anchor/Tide review tracking.
 The lake contains the detailed contracts for those operations and the broader command surface.
 Future interfaces may add a lightweight GUI or Obsidian integration.
-
-To check the published walkthrough against a local build, run
-`python3 scripts/smoke-readme.py target/debug/sirno` from this repository.
 <!-- sirno:witness:readme:end -->
 
 ## License

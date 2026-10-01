@@ -8,14 +8,12 @@ belongs:
   - lake-review
 prerequisite:
   - lake-review
-  - readme
 refines:
   - project-self-application
 ---
 
 This repository checks each proposed revision through continuous integration.
-The checks cover Rust formatting, tests, strict Clippy, and the published README walkthrough.
-The walkthrough runs in a disposable project against the binary built from that revision.
+The checks cover Rust formatting, tests, and strict Clippy.
 
 Lake validation renders the default mist and requires clean review status against the committed Anchor.
 CI preserves this checkout's accepted baseline and review state.

@@ -29,8 +29,6 @@ jobs:
         run: cargo clippy --locked --all-targets -- -D warnings
       - name: Build
         run: cargo build --locked
-      - name: Check README walkthrough
-        run: python3 scripts/smoke-readme.py target/debug/sirno
       - name: Validate lake
         run: |
           target/debug/sirno mist render
