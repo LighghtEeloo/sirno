@@ -2866,7 +2866,7 @@ mod tests {
                 id: EntryAddress::new("alpha").unwrap(),
                 intrinsic: intrinsic_fields([("name", "Alpha"), ("desc", "Alpha entry.")]),
                 structural: Vec::new(),
-                body: Some("Body.".to_owned()),
+                body: Some("Body.\n".to_owned()),
             })
             .unwrap();
     }
@@ -3058,7 +3058,105 @@ mod tests {
         let quiet = format_status_result(&result, true);
         assert!(quiet.contains("lake check"));
         assert!(!quiet.contains(&message));
+        assert!(quiet.contains(&result.message));
+        assert!(quiet.contains("next: inspect diagnostics"));
     }
+
+    // sirno:witness:project-status-commands:begin
+    #[test]
+    fn status_explains_missing_and_changed_baselines_at_every_detail_level() {
+        use crate::surface::dto::StatusMode;
+        use crate::surface::output::format_status_result;
+
+        let (_temp, context) = initialized_context();
+        for show in [StatusMode::Summary, StatusMode::Normal, StatusMode::Full] {
+            let result = context.status(StatusRequest::new(show, CheckMode::Review)).unwrap();
+            assert!(!result.ok);
+            for quiet in [false, true] {
+                let rendered = format_status_result(&result, quiet);
+                assert!(rendered.contains("status has blockers: anchor missing"), "{rendered}");
+                assert!(rendered.contains("`sirno anchor update`"), "{rendered}");
+            }
+        }
+
+        context.mist_render(None, false).unwrap();
+        context.anchor_update().unwrap();
+        let clean = context.status(StatusRequest::summary()).unwrap();
+        assert!(clean.ok);
+        let rendered = format_status_result(&clean, false);
+        assert!(rendered.contains("status clean:"), "{rendered}");
+        assert!(!rendered.contains("next:"), "{rendered}");
+
+        create_alpha_entry(&context);
+        context.mist_render(None, false).unwrap();
+        let changed = context.status(StatusRequest::summary()).unwrap();
+        assert!(!changed.ok);
+        let rendered = format_status_result(&changed, true);
+        assert!(rendered.contains("1 anchor ripple"), "{rendered}");
+        assert!(rendered.contains("`sirno anchor update`"), "{rendered}");
+    }
+
+    #[test]
+    fn summary_status_directs_pending_review_to_tide_before_anchor() {
+        use crate::surface::output::format_status_result;
+
+        let (temp, context) = initialized_context();
+        fs::write(
+            temp.path().join("lake/depends.md"),
+            "---\nname: Depends\ndesc: Review dependencies.\nmeta.type: structural\nmeta.ripple.lake: [from]\n---\n\nReview dependents when their dependency changes.\n",
+        )
+        .unwrap();
+        create_alpha_entry(&context);
+        context
+            .entry_new(EntryNewRequest {
+                id: EntryAddress::new("beta").unwrap(),
+                intrinsic: intrinsic_fields([("name", "Beta"), ("desc", "Uses alpha.")]),
+                structural: vec![StructuralTarget {
+                    field: "depends".to_owned(),
+                    target: EntryAddress::new("alpha").unwrap(),
+                }],
+                body: None,
+            })
+            .unwrap();
+        context.mist_render(None, false).unwrap();
+        context.anchor_update().unwrap();
+        let alpha = temp.path().join("lake/alpha.md");
+        let source = fs::read_to_string(&alpha).unwrap();
+        fs::write(alpha, format!("{source}\nChanged design.\n")).unwrap();
+        context.mist_render(None, false).unwrap();
+
+        let result = context.status(StatusRequest::summary()).unwrap();
+        assert!(!result.ok);
+        assert_eq!(result.blockers.tide_open_workitems, Some(1));
+        assert!(result.tide.is_none());
+        let rendered = format_status_result(&result, true);
+        assert!(rendered.contains("1 tide workitem"), "{rendered}");
+        assert!(rendered.contains("1 anchor ripple"), "{rendered}");
+        assert!(rendered.contains("`sirno tide status --show full`"), "{rendered}");
+        assert!(!rendered.contains("`sirno anchor update`"), "{rendered}");
+    }
+
+    #[test]
+    fn summary_status_explains_projection_changes() {
+        use crate::surface::output::format_status_result;
+
+        let (temp, context) = initialized_context();
+        context.mist_render(None, false).unwrap();
+        context.anchor_update().unwrap();
+        let projected = temp.path().join(crate::DEFAULT_MIST_PROJECTION_PATH).join("name.md");
+        let source = fs::read_to_string(&projected).unwrap();
+        fs::write(projected, format!("{source}\nChanged design.\n")).unwrap();
+
+        let result = context.status(StatusRequest::summary()).unwrap();
+        assert!(!result.ok);
+        assert_eq!(result.blockers.mist_changed_entries, Some(1));
+        assert!(result.mist.is_none());
+        let rendered = format_status_result(&result, true);
+        assert!(rendered.contains("1 mist blocker"), "{rendered}");
+        assert!(rendered.contains("`sirno mist status`"), "{rendered}");
+        assert!(!rendered.contains("`sirno anchor update`"), "{rendered}");
+    }
+    // sirno:witness:project-status-commands:end
 
     #[test]
     fn mist_render_status_and_intake_round_trip_entry_edits() {

@@ -54,10 +54,17 @@ Full status adds structural link policy, selected-mode check output, and Anchor 
 A failed lake check carries its check output at every detail level,
 so a failing status can always explain itself.
 CLI status prints the check diagnostic block unless `--quiet` is set.
+Every human detail level prints the overall status message and compact blocker counts,
+including when `--quiet` suppresses check diagnostics.
+A blocked status also suggests the next step:
+inspect check diagnostics, inspect mist changes, review Tide workitems,
+or review the lake, render its projection, and accept it with Anchor, in that order.
+The suggestion guides the operator; status remains read-only.
 
 `project-status-commands` owns project status command spelling and behavior.
 `project-config` owns project configuration.
 `lake`, `anchor`, `tide`, and `mist` own the status domains being summarized.
 
-The *repository witnesses* for this entry should show CLI and MCP status dispatch
-and the shared surface-context operation that assembles status data.
+The *repository witnesses* for this entry should show CLI and MCP status dispatch,
+the shared surface-context operation that assembles status data,
+and human output that explains blockers at every detail level.

@@ -315,6 +315,7 @@ pub(crate) fn format_status_result(result: &StatusResult, quiet: bool) -> String
     format_status_result_with_style(result, quiet, OutputStyle::Plain)
 }
 
+// sirno:witness:project-status-commands:begin
 fn format_status_result_with_style(
     result: &StatusResult, quiet: bool, style: OutputStyle,
 ) -> String {
@@ -422,8 +423,25 @@ fn format_status_result_with_style(
             ));
         }
     }
+    let summary_style = if result.ok { SemanticStyle::Success } else { SemanticStyle::Warning };
+    output.push_str(&format!("{}\n", style_text(&result.message, summary_style, style)));
+    if !result.ok {
+        let next = if result.blockers.check_errors > 0 {
+            "inspect diagnostics with `sirno status --show full`"
+        } else if result.blockers.mist_blocker_count() > 0 {
+            "inspect projection changes with `sirno mist status`"
+        } else if result.blockers.tide_open_workitems.unwrap_or(0) > 0 {
+            "review affected entries with `sirno tide status --show full`"
+        } else if result.blockers.has_anchor_blocker() {
+            "review the lake, run `sirno mist render`, then accept it with `sirno anchor update`"
+        } else {
+            "inspect project details with `sirno status --show full`"
+        };
+        output.push_str(&format!("next: {next}\n"));
+    }
     output
 }
+// sirno:witness:project-status-commands:end
 
 fn check_mode_label(mode: CheckMode) -> &'static str {
     match mode {

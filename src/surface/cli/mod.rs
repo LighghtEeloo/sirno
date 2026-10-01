@@ -181,7 +181,7 @@ enum Command {
 #[derive(Debug, Args)]
 struct StatusArgs {
     /// Select summary, normal, or full status detail.
-    #[arg(long, value_enum, default_value_t = StatusMode::Normal)]
+    #[arg(long, value_enum, default_value_t)]
     show: StatusMode,
     /// Check boundary used while assembling status.
     #[arg(short = 'm', long, value_enum, default_value_t = CheckModeArg::Review)]
@@ -2504,6 +2504,16 @@ fn path_selection_from_args(args: &EntryPathsArgs) -> PathSelection {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn status_defaults_match_the_shared_request() {
+        let cli = Cli::try_parse_from(["sirno", "status"]).unwrap();
+        let Command::Status(args) = cli.command else {
+            panic!("expected status command");
+        };
+
+        assert_eq!(StatusRequest::new(args.show, args.mode.into()), StatusRequest::default());
+    }
 
     #[test]
     fn entry_new_accepts_user_intrinsic_fields() {

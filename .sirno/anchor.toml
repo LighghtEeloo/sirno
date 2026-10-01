@@ -670,7 +670,7 @@ prerequisite = [
 refines = ["command-families"]
 
 [entries.project-status-commands]
-fingerprint = "sha256:55292f9f16ca30dae424765ff7c38b38b7d10b958e7d5fbfa106a0c922b8a6d0"
+fingerprint = "sha256:6bca98478ec5a1b47f526f11e279f92d1ad16fe6e374f5f92c75a245dc95df8e"
 belongs = ["project-config"]
 prerequisite = [
     "project-config",
