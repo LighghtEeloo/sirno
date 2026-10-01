@@ -699,7 +699,7 @@ prerequisite = [
 ]
 
 [entries.readme]
-fingerprint = "sha256:d02eb58fc5f9726dde2951cf9df8e56843dca3c6e404b7b25d79ff754814bea9"
+fingerprint = "sha256:420b00afb76dfa53357557af3f34d3a1dd8c41f66179150a77c95d837fde5811"
 belongs = ["narrative"]
 prerequisite = [
     "introduction",
