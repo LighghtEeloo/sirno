@@ -21,7 +21,9 @@ MCP is the agent-facing project interface:
 - it keeps host setup and package maintenance as explicit human CLI actions
 
 Skill resources are `text/markdown` payloads rendered by `src/mcp.rs`
-from lake-owned `SKILL.full.template.md` artifacts.
+from lake-owned `SKILL.full.template.md` artifacts bundled in `src/skills.rs`.
+That shared inventory also selects the installed Sirno wrappers.
+The design-document method is a resource-only inventory member.
 Templates may carry a runtime metadata slot.
 When present,
 MCP fills it with the configured lake path,

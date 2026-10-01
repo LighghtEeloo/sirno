@@ -7,6 +7,7 @@ belongs:
   - agent-skills
 prerequisite:
   - agent-skills
+  - repository-editing-discipline
   - portable-agent-skill-language
   - methodology
   - semantic-locality
@@ -28,6 +29,11 @@ skill artifacts, README prose, or another non-lake document.
 `repository-editing-discipline` owns the shared edit method:
 orientation, structural relation reading, witness inspection,
 configuration alignment, documentation sync, validation, Tide handling, and staging.
+The actualizer loads `sirno://skills/sirno-editor` once for the active project context
+and applies that method to the requested scope.
+Its resource adds directional decisions rather than repeating the shared procedure.
+If the shared resource is unavailable, reuse a prior read from the same project context;
+otherwise report the missing method and continue only grounded read-only inspection.
 Actualization adds the directional rule:
 the entry is the design source,
 and the repository material is shaped to match it.
@@ -35,6 +41,7 @@ and the repository material is shaped to match it.
 When repository work reveals a durable design fact that the lake does not yet name,
 hand off to `internalization-discipline`.
 Return to actualization after the entry exists.
+If the governing design remains unresolved, report the missing claim and defer dependent edits.
 When the request mixes directions or the direction is unclear,
 use `repository-editing-discipline` as the front door.
 

@@ -85,7 +85,15 @@ not from a fresh raw lake scan.
 Skill-template frontmatter `name` is the skill directory id.
 `description` states when to use the skill and the triggers that should invoke it.
 The template body turns durable procedure into concrete steps and current MCP tools.
-The template must include the discipline's failure paths:
+Shared procedure may be inherited through an explicit MCP resource reference.
+Actualizer and internalizer resources load the editor once per active project context
+and keep only their directional decisions and local failure paths.
+Preserve that delegation during synthesis instead of copying the editor's checklist.
+The editor remains usable without loading either directional supplement.
+Entry-writing principles and shared failure handling apply through the loaded editor resource.
+If a shared resource is unavailable, a prior read from the same project context may supply the method;
+otherwise report the missing source and continue only grounded read-only inspection.
+The resource and its declared shared method must cover the discipline's failure paths:
 missing sources, unavailable tools, blocked validation,
 absent evidence, and design changes that must be internalized into the lake.
 The wrapper `SKILL.md` artifact keeps the same frontmatter,

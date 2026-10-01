@@ -7,6 +7,7 @@ belongs:
   - agent-skills
 prerequisite:
   - agent-skills
+  - repository-editing-discipline
   - portable-agent-skill-language
   - methodology
   - semantic-locality
@@ -26,6 +27,11 @@ behavior, contract, or policy that future work should reason through.
 `repository-editing-discipline` owns the shared edit method:
 orientation, structural relation reading, witness inspection,
 configuration alignment, documentation sync, validation, Tide handling, and staging.
+The internalizer loads `sirno://skills/sirno-editor` once for the active project context
+and applies that method to the requested scope.
+Its resource adds directional decisions rather than repeating the shared procedure.
+If the shared resource is unavailable, reuse a prior read from the same project context;
+otherwise report the missing method and continue only grounded read-only inspection.
 Internalization adds the directional rule:
 the repository supplies evidence,
 but the fact becomes canonical only when an entry names it.
@@ -34,6 +40,7 @@ Internalization rejects changelog material.
 Commit history can carry the sequence of edits.
 The lake should carry the design that survived the edit
 and will shape later work.
+If source material is unavailable, report the gap and internalize only facts grounded in available evidence.
 
 Choose the closest existing entry when it already names the fact.
 Create a new compact entry when the fact belongs to a new boundary.

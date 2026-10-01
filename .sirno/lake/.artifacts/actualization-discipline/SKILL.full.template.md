@@ -11,86 +11,40 @@ description: >-
 Use this skill for the lake-to-repository direction of repository work.
 Shape source, tests, generated artifacts, configuration, or non-lake documentation from the
 active project's Sirno Lake.
+The entry is the design source; repository material gives its claim material form.
 
-Actualization starts after the relevant entry is known or can be named compactly.
 When the work primarily records a repository fact back into the lake,
 use `sirno://skills/sirno-internalizer`.
-When the direction is mixed or unclear,
-use `sirno://skills/sirno-editor`.
+When the direction is mixed or unclear, use `sirno://skills/sirno-editor`.
 
 This full skill text is served as `sirno://skills/sirno-actualizer`.
-Apply it to the project currently bound through Sirno MCP.
 
 {{SIRNO_ACTIVE_PROJECT_METADATA}}
 
-## Project Binding
+## Shared Method
 
-Bind the MCP server to the repository before calling project tools.
-Call `sirno_cwd` with the repository root when the server may not already be there.
-Project tools resolve `Sirno.toml` from the server current working directory on each call.
-Call `sirno_cwd` again before switching projects in the same server process.
+Read `sirno://skills/sirno-editor` once for the active project context before doing skill work.
+Reuse a current read from that context.
+Follow its project binding, orientation, entry-writing, evidence, configuration,
+documentation, validation, Tide, frozen-entry, and staging procedure for the requested scope.
+This resource supplies the directional decisions below.
 
-## Workflow
+If the shared resource is unavailable, reuse a prior read from the same project context.
+Otherwise report the missing method and continue only grounded read-only inspection
+until the shared source is available.
 
-1. Orient to the design source.
-   Read repository instructions and `Sirno.toml`.
-   If `Sirno.toml` is missing, report that the repository is not Sirno-managed
-   and prompt the user to start with `sirno init`.
-   Call `sirno_status` to surface the lake path, tide blockers,
-   and pending review entries.
-   Query the active lake with `sirno_entry_query`,
-   then read the few entries that govern the requested work.
-   Read frozen entries with the same weight as mutable ones.
-   Use `sirno_entry_witness` to inspect existing evidence before touching repository material.
+## Directional Decisions
 
-2. Confirm the entry handle.
-   If an existing entry states the right claim, work under that entry.
-   If a small entry is needed and the durable fact is clear,
-   create or revise it before the repository change settles.
-   Apply semantic locality to any inline entry change:
-   the new or revised entry should own its local meaning,
-   while implementation entries and witnesses remain narrower evidence or refinement.
-   If the entry is a route, index, roster, or review front door,
-   say what the list is for and keep it separate from the semantic claim.
-   If the work exposes a new fact that needs separate deliberation,
-   hand off to the internalizer skill and return once the entry exists.
-   Leave generated footer regions untouched.
+1. Identify the governing claim.
+   Use the entry that states the design, whether frozen or mutable.
+   If repository evidence reveals a durable fact that the lake does not yet name,
+   use the internalizer to record it before the repository change settles.
+   If the design remains unresolved, report the missing claim and defer dependent edits.
 
-3. Shape repository material.
-   Keep the edit narrow and aligned with the entry claim.
-   Update source, tests, configuration, skill artifacts, or public prose only as the entry requires.
-   When repository evidence exists,
-   add or refine precise witness blocks around the smallest stable region that supports the entry.
-   Do not add placeholder witnesses.
-   If evidence supports a related but different claim,
-   create the exact entry for that claim through the internalizer skill.
+2. Shape the requested material from that claim.
+   Change only the source, tests, configuration, artifacts, or public prose the entry requires.
+   If implementation reveals a different boundary or claim,
+   internalize that design change before continuing actualization.
+   When stable repository evidence exists, connect it through the editor's witness procedure.
 
-4. Keep adjacent surfaces aligned.
-   Prefer MCP tools such as `sirno_lake_move`, `sirno_status`, `sirno_anchor_update`,
-   and `sirno_entry_artifact_*`
-   for routine lake movement, project status, Anchor updates, and artifact moves.
-   Use manual `Sirno.toml` edits only for schema or comment work the MCP tools cannot express.
-   Treat long-form documents outside the configured lake as repository material.
-   Render or rewrite them from the entries that name their design claims.
-
-## Validation
-
-Run `sirno_mist_render` after reservoir metadata changes.
-Run `sirno_status` in edit mode and review mode before treating the work as complete.
-Run `sirno_entry_witness` against any entry whose evidence changed.
-Run the formatter, tests, and checks that fit the active repository.
-
-If `sirno_status` reports an open tide,
-walk workitems with `sirno_tide_status`,
-then use `sirno_tide_resolve` or `sirno_tide_unresolve` rather than ignoring the blocker.
-If the current checkout is frozen or an entry is immutable,
-surface the proposed change to the user for double review,
-then use `sirno_entry_melt`
-once the user agrees.
-
-If a check is blocked, report the blocker and still validate entry parsing,
-metadata references, and witness output as far as the tools allow.
-
-Stage only the changed entries and artifacts,
-the repository files that actualize them,
-and directly related configuration or documentation.
+Finish with the editor's validation and scoped staging procedure.

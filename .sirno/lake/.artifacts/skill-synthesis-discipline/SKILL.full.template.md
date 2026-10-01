@@ -46,6 +46,7 @@ correct the artifact or wrapper, never the lake.
    A project may use `agent-skills` as the front door and rostered `*-discipline` entries
    as skill sources.
    Follow the active project's roster instead of assuming those ids exist.
+   Query and read its meta entries for shared vocabulary, principles, and method.
    Treat other method entries as shared method unless the roster says they ship as skills.
 
 2. Discover the package surface.
@@ -62,18 +63,25 @@ correct the artifact or wrapper, never the lake.
    The template operationalizes its discipline plus the shared method it depends on.
    Include the runtime metadata slot when a skill depends on active project fields.
    Add nothing the lake does not commit.
-   Include semantic locality when the rendered resource creates, edits, audits, or materializes entries:
+   Preserve explicit shared-resource delegation instead of expanding duplicated checklists.
+   Actualizer and internalizer load the editor once per active project context
+   and retain their directional decisions and local failure paths.
+   The editor remains usable without either supplement.
+   Shared principles and failure handling may be supplied by the loaded resource.
+   If it is unavailable, reuse a prior read from the same project context;
+   otherwise report the missing source and continue only grounded read-only inspection.
+   Apply semantic locality when the rendered resource creates, edits, audits, or materializes entries:
    entries should preserve their own local meaning,
    and useful lists should not be confused for semantic contracts.
    A route, index, roster, or review front door may enumerate children
    when that list is part of that entry's local claim.
-   Include immutable update when the rendered resource changes repository material:
+   Apply immutable update when the rendered resource changes repository material:
    treat the current repository and lake as a snapshot,
    carry forward the facts that still hold,
    and prefer replacing stale local shape over layering around it.
    Preserve shared documentation habits such as reader-aware bullets, diagrams,
    conceptual ordering, and declarative precision when the rendered resource touches prose.
-   Include failure paths for missing sources, unavailable tools, blocked validation,
+   Cover failure paths for missing sources, unavailable tools, blocked validation,
    absent evidence, and design changes that must be internalized into the lake.
    Defer project configuration maintenance to the editor skill rather than copying its checklist.
 

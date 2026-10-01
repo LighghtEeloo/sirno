@@ -20,6 +20,13 @@ refines:
 
 Repository editing is the procedure for editing repository material in a Sirno-managed project.
 It is also the shared method home for actualization and internalization.
+The editor is usable on its own.
+Directional skills load its MCP resource once per active project context
+and add their local decisions without making the editor depend on either supplement.
+Reuse a loaded resource while its project binding and method remain current.
+After switching projects, read it again after rebinding.
+Apply shared steps only to the requested scope;
+internalizing an existing fact does not require an additional implementation change.
 Its static full-resource template lives in
 `.artifacts/repository-editing-discipline/SKILL.full.template.md`
 and is rendered by `src/mcp.rs` as `sirno://skills/sirno-editor`.
@@ -86,6 +93,8 @@ If the current checkout is frozen or an entry is immutable,
 use `sirno_entry_melt` instead of forcing a write.
 If checks are blocked, report the blocker and still validate entry parsing,
 metadata references, and witness output as far as the tools allow.
+If a required tool is unavailable, report the blocked operation
+and continue independent work supported by the available sources and tools.
 
 Stage narrowly when committing.
 Stage the changed entries and artifacts,

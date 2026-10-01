@@ -36,7 +36,7 @@ artifacts, package, and structural links.
 It should not require existing discipline entries to rewrite their local meaning.
 
 Each rostered discipline owns two lake artifacts.
-`SKILL.full.template.md` is the static full-resource template read by `src/mcp.rs`.
+`SKILL.full.template.md` is the static full-resource template bundled through `src/skills.rs`.
 MCP renders it when an agent reads the matching `sirno://skills/sirno-*` resource.
 The rendered resource injects active-project metadata,
 including intrinsic fields and structural relations loaded from `.sirno/meta.toml`.
@@ -44,6 +44,16 @@ including intrinsic fields and structural relations loaded from `.sirno/meta.tom
 The wrapper tells an agent to read the MCP resource before doing skill work.
 When Claude skill integration is selected,
 Sirno links installed `.agents/skills/sirno-*` package directories into `.claude/skills`.
+
+One bundled inventory owns skill names, source entries, resource metadata, templates,
+and optional wrappers.
+MCP resource discovery and wrapper maintenance both use that inventory.
+Resource-only methods remain available through MCP without becoming installed Sirno wrappers.
+The inventory preserves the resource roster and packaged skill order.
+
+Actualizer and internalizer load the editor procedure once per active project context,
+then apply their own directional procedure.
+The editor owns the shared repository-editing workflow and remains independently usable.
 
 Packaged skills are portable.
 They speak from the active project perspective:

@@ -19,6 +19,11 @@ Repository material covers source, tests, generated artifacts, configuration,
 README files, design documents outside the configured lake, witness blocks, and skill packages.
 Any important local commitment should trace back to an entry in the active project.
 
+This resource supplies the shared method for actualization and internalization.
+It is usable on its own; neither directional supplement is required.
+Apply its steps only to the requested scope.
+Internalizing an existing fact does not require an additional implementation change.
+
 Use `sirno://skills/sirno-curator` for standalone lake curation:
 entry framing, structural relation fit, review-neighborhood placement,
 or witness-alignment assessment when no repository-material change drives the work.
@@ -34,6 +39,8 @@ Bind the MCP server to the repository before calling project tools.
 Call `sirno_cwd` with the repository root when the server may not already be there.
 Project tools resolve `Sirno.toml` from the server current working directory on each call.
 Call `sirno_cwd` again before switching projects in the same server process.
+Reuse this resource while its project binding and method remain current.
+After switching projects, read it again after rebinding.
 
 ## Workflow
 
@@ -110,6 +117,8 @@ instead of forcing a write.
 
 If a check is blocked, report the blocker and still validate entry parsing,
 metadata references, and witness output as far as the tools allow.
+If a required tool is unavailable, report the blocked operation
+and continue independent work supported by the available sources and tools.
 
 Stage only the changed entries and artifacts,
 the repository files that actualize them,

@@ -20,6 +20,7 @@ pub mod meta;
 pub mod mist;
 pub mod query;
 pub mod render;
+mod skills;
 pub mod structural;
 pub mod tide;
 pub mod upstream;

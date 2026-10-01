@@ -25,6 +25,7 @@ use rmcp::{
 };
 use serde::{Deserialize, Serialize};
 
+use crate::skills::BundledSkill;
 use crate::surface::{
     ArtifactAddRequest, ArtifactRemoveRequest, ArtifactRenameRequest, EntryNewRequest,
     EntryPathsRequest, EntryReadContent, EntryReadRequest, LakeInitRequest, PathSelection,
@@ -42,104 +43,10 @@ const ENTRY_RESOURCE_MIME_TYPE: &str = "text/markdown";
 const ENTRY_RESOURCE_URI_PREFIX: &str = "sirno://entries/";
 const ENTRY_RESOURCE_URI_TEMPLATE: &str = "sirno://entries/{id}";
 
-// sirno:witness:design-doc-writer-skill:begin
-const DESIGN_DOC_WRITER_SKILL_RESOURCE: SkillResourceSpec = SkillResourceSpec {
-    uri: "sirno://skills/design-doc-writer",
-    name: "design-doc-writer",
-    title: "Design Doc Writer",
-    description: "Full design-doc-writer skill text.",
-    template: include_str!(
-        "../.sirno/lake/.artifacts/design-doc-writer-skill/SKILL.full.template.md"
-    ),
-};
-// sirno:witness:design-doc-writer-skill:end
-
-// sirno:witness:agent-skills:begin
-const SKILL_RESOURCES: &[SkillResourceSpec] = &[
-    DESIGN_DOC_WRITER_SKILL_RESOURCE,
-    SkillResourceSpec {
-        uri: "sirno://skills/sirno-editor",
-        name: "sirno-editor",
-        title: "Sirno Editor",
-        description: "Full Sirno editor skill text.",
-        template: include_str!(
-            "../.sirno/lake/.artifacts/repository-editing-discipline/SKILL.full.template.md"
-        ),
-    },
-    SkillResourceSpec {
-        uri: "sirno://skills/sirno-actualizer",
-        name: "sirno-actualizer",
-        title: "Sirno Actualizer",
-        description: "Full Sirno actualizer skill text.",
-        template: include_str!(
-            "../.sirno/lake/.artifacts/actualization-discipline/SKILL.full.template.md"
-        ),
-    },
-    SkillResourceSpec {
-        uri: "sirno://skills/sirno-internalizer",
-        name: "sirno-internalizer",
-        title: "Sirno Internalizer",
-        description: "Full Sirno internalizer skill text.",
-        template: include_str!(
-            "../.sirno/lake/.artifacts/internalization-discipline/SKILL.full.template.md"
-        ),
-    },
-    SkillResourceSpec {
-        uri: "sirno://skills/sirno-narrative-session",
-        name: "sirno-narrative-session",
-        title: "Sirno Narrative Session",
-        description: "Full Sirno narrative-session skill text.",
-        template: include_str!(
-            "../.sirno/lake/.artifacts/narrative-session-discipline/SKILL.full.template.md"
-        ),
-    },
-    SkillResourceSpec {
-        uri: "sirno://skills/sirno-skill-synthesizer",
-        name: "sirno-skill-synthesizer",
-        title: "Sirno Skill Synthesizer",
-        description: "Full Sirno skill-synthesizer text.",
-        template: include_str!(
-            "../.sirno/lake/.artifacts/skill-synthesis-discipline/SKILL.full.template.md"
-        ),
-    },
-    SkillResourceSpec {
-        uri: "sirno://skills/sirno-curator",
-        name: "sirno-curator",
-        title: "Sirno Curator",
-        description: "Full Sirno curator skill text.",
-        template: include_str!(
-            "../.sirno/lake/.artifacts/lake-curation-discipline/SKILL.full.template.md"
-        ),
-    },
-    SkillResourceSpec {
-        uri: "sirno://skills/sirno-finalizer",
-        name: "sirno-finalizer",
-        title: "Sirno Finalizer",
-        description: "Full Sirno finalizer skill text.",
-        template: include_str!(
-            "../.sirno/lake/.artifacts/finalization-discipline/SKILL.full.template.md"
-        ),
-    },
-];
-// sirno:witness:agent-skills:end
-
-#[derive(Clone, Copy, Debug)]
-struct SkillResourceSpec {
-    uri: &'static str,
-    name: &'static str,
-    title: &'static str,
-    description: &'static str,
-    template: &'static str,
-}
-
-impl SkillResourceSpec {
-    fn for_uri(uri: &str) -> Option<&'static Self> {
-        SKILL_RESOURCES.iter().find(|resource| resource.uri == uri)
-    }
-
+impl BundledSkill {
     fn as_resource(&self) -> Resource {
         Annotated::new(
-            RawResource::new(self.uri, self.name)
+            RawResource::new(self.uri(), self.name)
                 .with_title(self.title)
                 .with_description(self.description)
                 .with_mime_type(SKILL_RESOURCE_MIME_TYPE),
@@ -148,7 +55,7 @@ impl SkillResourceSpec {
     }
 
     fn as_resource_contents(&self, context: &SurfaceContext) -> ResourceContents {
-        ResourceContents::text(self.render(context), self.uri)
+        ResourceContents::text(self.render(context), self.uri())
             .with_mime_type(SKILL_RESOURCE_MIME_TYPE)
     }
 
@@ -272,7 +179,7 @@ impl ServerHandler for SirnoMcpServer {
         &self, _request: Option<PaginatedRequestParams>, _context: RequestContext<RoleServer>,
     ) -> impl Future<Output = Result<ListResourcesResult, McpError>> + MaybeSendFuture + '_ {
         let resources =
-            SKILL_RESOURCES.iter().map(SkillResourceSpec::as_resource).collect::<Vec<_>>();
+            BundledSkill::all().iter().map(BundledSkill::as_resource).collect::<Vec<_>>();
         future::ready(Ok(ListResourcesResult::with_all_items(resources)))
     }
 
@@ -288,7 +195,7 @@ impl ServerHandler for SirnoMcpServer {
     fn read_resource(
         &self, request: ReadResourceRequestParams, _context: RequestContext<RoleServer>,
     ) -> impl Future<Output = Result<ReadResourceResult, McpError>> + MaybeSendFuture + '_ {
-        let result = if let Some(resource) = SkillResourceSpec::for_uri(&request.uri) {
+        let result = if let Some(resource) = BundledSkill::for_uri(&request.uri) {
             Ok(ReadResourceResult::new(vec![resource.as_resource_contents(&self.context)]))
         } else if let Some(raw_id) = request.uri.strip_prefix(ENTRY_RESOURCE_URI_PREFIX) {
             entry_address(raw_id.to_owned())
@@ -1505,27 +1412,23 @@ Body.
         assert!(tools.tools.iter().any(|tool| tool.name == "sirno_status"));
 
         let resources = client.peer().list_resources(None).await.unwrap();
-        assert_eq!(resources.resources.len(), SKILL_RESOURCES.len());
-        assert!(resources.resources.iter().any(|resource| {
-            resource.uri == "sirno://skills/sirno-editor"
-                && resource.mime_type.as_deref() == Some(SKILL_RESOURCE_MIME_TYPE)
-        }));
-        assert!(resources.resources.iter().any(|resource| {
-            resource.uri == "sirno://skills/sirno-actualizer"
-                && resource.mime_type.as_deref() == Some(SKILL_RESOURCE_MIME_TYPE)
-        }));
-        assert!(resources.resources.iter().any(|resource| {
-            resource.uri == "sirno://skills/sirno-internalizer"
-                && resource.mime_type.as_deref() == Some(SKILL_RESOURCE_MIME_TYPE)
-        }));
-        assert!(resources.resources.iter().any(|resource| {
-            resource.uri == "sirno://skills/sirno-finalizer"
-                && resource.mime_type.as_deref() == Some(SKILL_RESOURCE_MIME_TYPE)
-        }));
-        assert!(resources.resources.iter().any(|resource| {
-            resource.uri == "sirno://skills/design-doc-writer"
-                && resource.mime_type.as_deref() == Some(SKILL_RESOURCE_MIME_TYPE)
-        }));
+        assert_eq!(
+            resources.resources.iter().map(|resource| resource.name.as_str()).collect::<Vec<_>>(),
+            [
+                "design-doc-writer",
+                "sirno-editor",
+                "sirno-actualizer",
+                "sirno-internalizer",
+                "sirno-narrative-session",
+                "sirno-skill-synthesizer",
+                "sirno-curator",
+                "sirno-finalizer",
+            ]
+        );
+        for resource in &resources.resources {
+            assert_eq!(resource.uri, format!("sirno://skills/{}", resource.name));
+            assert_eq!(resource.mime_type.as_deref(), Some(SKILL_RESOURCE_MIME_TYPE));
+        }
 
         let resource_templates = client.peer().list_resource_templates(None).await.unwrap();
         assert_eq!(resource_templates.resource_templates.len(), 1);

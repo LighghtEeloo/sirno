@@ -14,6 +14,7 @@ use crate::charm::{
     CharmBuildSpec, CharmBundle, CharmCommandSpec, CharmManifest, artifact_map,
     manifest_artifact_path,
 };
+use crate::skills::{BundledSkill, BundledSkillWrapper};
 use crate::surface::dto::{
     AnchorRippleKind, AnchorRippleRecord, AnchorUpdateResult, ArtifactAddRequest,
     ArtifactChangeResult, ArtifactListResult, ArtifactRemoveRequest, ArtifactRenameRequest,
@@ -44,72 +45,6 @@ use crate::{
     UpstreamFile, UpstreamGitCache, UpstreamStatusReport, VagueEntryQuery, WitnessCheckSettings,
     WitnessRecord,
 };
-
-// sirno:witness:agent-skills:begin
-const SKILL_WRAPPERS: &[SkillWrapperSpec] = &[
-    SkillWrapperSpec {
-        name: "sirno-editor",
-        entry_id: "repository-editing-discipline",
-        wrapper_path: ".sirno/lake/.artifacts/repository-editing-discipline/SKILL.md",
-        full_path: ".sirno/lake/.artifacts/repository-editing-discipline/SKILL.full.template.md",
-        target_path: ".agents/skills/sirno-editor/SKILL.md",
-        content: include_str!(
-            "../../.sirno/lake/.artifacts/repository-editing-discipline/SKILL.md"
-        ),
-    },
-    SkillWrapperSpec {
-        name: "sirno-actualizer",
-        entry_id: "actualization-discipline",
-        wrapper_path: ".sirno/lake/.artifacts/actualization-discipline/SKILL.md",
-        full_path: ".sirno/lake/.artifacts/actualization-discipline/SKILL.full.template.md",
-        target_path: ".agents/skills/sirno-actualizer/SKILL.md",
-        content: include_str!("../../.sirno/lake/.artifacts/actualization-discipline/SKILL.md"),
-    },
-    SkillWrapperSpec {
-        name: "sirno-internalizer",
-        entry_id: "internalization-discipline",
-        wrapper_path: ".sirno/lake/.artifacts/internalization-discipline/SKILL.md",
-        full_path: ".sirno/lake/.artifacts/internalization-discipline/SKILL.full.template.md",
-        target_path: ".agents/skills/sirno-internalizer/SKILL.md",
-        content: include_str!("../../.sirno/lake/.artifacts/internalization-discipline/SKILL.md"),
-    },
-    SkillWrapperSpec {
-        name: "sirno-narrative-session",
-        entry_id: "narrative-session-discipline",
-        wrapper_path: ".sirno/lake/.artifacts/narrative-session-discipline/SKILL.md",
-        full_path: ".sirno/lake/.artifacts/narrative-session-discipline/SKILL.full.template.md",
-        target_path: ".agents/skills/sirno-narrative-session/SKILL.md",
-        content: include_str!("../../.sirno/lake/.artifacts/narrative-session-discipline/SKILL.md"),
-    },
-    SkillWrapperSpec {
-        name: "sirno-skill-synthesizer",
-        entry_id: "skill-synthesis-discipline",
-        wrapper_path: ".sirno/lake/.artifacts/skill-synthesis-discipline/SKILL.md",
-        full_path: ".sirno/lake/.artifacts/skill-synthesis-discipline/SKILL.full.template.md",
-        target_path: ".agents/skills/sirno-skill-synthesizer/SKILL.md",
-        content: include_str!("../../.sirno/lake/.artifacts/skill-synthesis-discipline/SKILL.md"),
-    },
-    SkillWrapperSpec {
-        name: "sirno-curator",
-        entry_id: "lake-curation-discipline",
-        wrapper_path: ".sirno/lake/.artifacts/lake-curation-discipline/SKILL.md",
-        full_path: ".sirno/lake/.artifacts/lake-curation-discipline/SKILL.full.template.md",
-        target_path: ".agents/skills/sirno-curator/SKILL.md",
-        content: include_str!("../../.sirno/lake/.artifacts/lake-curation-discipline/SKILL.md"),
-    },
-    SkillWrapperSpec {
-        name: "sirno-finalizer",
-        entry_id: "finalization-discipline",
-        wrapper_path: ".sirno/lake/.artifacts/finalization-discipline/SKILL.md",
-        full_path: ".sirno/lake/.artifacts/finalization-discipline/SKILL.full.template.md",
-        target_path: ".agents/skills/sirno-finalizer/SKILL.md",
-        content: include_str!("../../.sirno/lake/.artifacts/finalization-discipline/SKILL.md"),
-    },
-];
-// sirno:witness:agent-skills:end
-
-const AGENT_SKILL_ROOT: &str = ".agents/skills";
-const CLAUDE_SKILL_ROOT: &str = ".claude/skills";
 
 #[derive(Clone, Debug)]
 pub struct SurfaceContext {
@@ -1128,8 +1063,9 @@ impl SurfaceContext {
     // sirno:witness:agent-skills:begin
     /// List bundled Sirno skill wrapper constants and package targets.
     pub fn skill_wrappers_list(&self) -> Result<SkillWrapperResult, CommandError> {
-        let records =
-            SKILL_WRAPPERS.iter().map(|source| source.record("source", false)).collect::<Vec<_>>();
+        let records = BundledSkill::wrapper_packages()
+            .map(|source| source.record("source", false))
+            .collect::<Vec<_>>();
         Ok(SkillWrapperResult {
             ok: true,
             message: format!("found {} Sirno skill wrappers", records.len()),
@@ -1146,13 +1082,13 @@ impl SurfaceContext {
         }
 
         let mut result = self.skill_wrappers_list()?;
-        result
-            .records
-            .extend(SKILL_WRAPPERS.iter().map(|source| source.claude_record("link", false)));
+        result.records.extend(
+            BundledSkill::wrapper_packages().map(|source| source.claude_record("link", false)),
+        );
         result.message = format!(
             "found {} Sirno skill wrappers and {} Claude skill links",
-            SKILL_WRAPPERS.len(),
-            SKILL_WRAPPERS.len()
+            BundledSkill::wrapper_packages().count(),
+            BundledSkill::wrapper_packages().count()
         );
         Ok(result)
     }
@@ -1161,8 +1097,8 @@ impl SurfaceContext {
     pub fn skill_wrappers_check(&self) -> Result<SkillWrapperResult, CommandError> {
         let root = config_parent(&self.config_path);
         let mut records = Vec::new();
-        for source in SKILL_WRAPPERS {
-            let target = root.join(source.target_path);
+        for source in BundledSkill::wrapper_packages() {
+            let target = root.join(source.target_path());
             let status = match fs::read(&target) {
                 | Ok(current) if current == source.content.as_bytes() => "ok",
                 | Ok(_) => "drifted",
@@ -1196,8 +1132,8 @@ impl SurfaceContext {
 
         let root = config_parent(&self.config_path);
         let mut result = self.skill_wrappers_check()?;
-        for source in SKILL_WRAPPERS {
-            let status = check_claude_skill_link(&root, source)?;
+        for source in BundledSkill::wrapper_packages() {
+            let status = check_claude_skill_link(&root, &source)?;
             result.records.push(source.claude_record(status, status != "ok"));
         }
 
@@ -1206,7 +1142,7 @@ impl SurfaceContext {
         result.message = if changed == 0 {
             format!(
                 "all {} Sirno skill wrappers and Claude links match artifacts",
-                SKILL_WRAPPERS.len()
+                BundledSkill::wrapper_packages().count()
             )
         } else {
             format!("{changed} Sirno skill wrappers or Claude links differ from artifacts")
@@ -1218,8 +1154,8 @@ impl SurfaceContext {
     pub fn skill_wrappers_init(&self) -> Result<SkillWrapperResult, CommandError> {
         let root = config_parent(&self.config_path);
         let mut records = Vec::new();
-        for source in SKILL_WRAPPERS {
-            let target = root.join(source.target_path);
+        for source in BundledSkill::wrapper_packages() {
+            let target = root.join(source.target_path());
             let status = match fs::read(&target) {
                 | Ok(current) if current == source.content.as_bytes() => "unchanged",
                 | Ok(_) => {
@@ -1258,15 +1194,15 @@ impl SurfaceContext {
 
         let root = config_parent(&self.config_path);
         let mut result = self.skill_wrappers_init()?;
-        for source in SKILL_WRAPPERS {
-            let status = init_claude_skill_link(&root, source)?;
+        for source in BundledSkill::wrapper_packages() {
+            let status = init_claude_skill_link(&root, &source)?;
             result.records.push(source.claude_record(status, status == "linked"));
         }
 
         let changed = result.records.iter().filter(|record| record.changed).count();
         result.message = format!(
             "installed {} Sirno skill wrappers and Claude links ({changed} changed)",
-            SKILL_WRAPPERS.len()
+            BundledSkill::wrapper_packages().count()
         );
         Ok(result)
     }
@@ -2079,24 +2015,14 @@ fn anchor_status_message(
     }
 }
 
-#[derive(Clone, Copy, Debug)]
-struct SkillWrapperSpec {
-    name: &'static str,
-    entry_id: &'static str,
-    wrapper_path: &'static str,
-    full_path: &'static str,
-    target_path: &'static str,
-    content: &'static str,
-}
-
-impl SkillWrapperSpec {
+impl BundledSkillWrapper<'_> {
     fn record(&self, status: impl Into<String>, changed: bool) -> SkillWrapperRecord {
         SkillWrapperRecord {
-            name: self.name.to_owned(),
-            entry_id: self.entry_id.to_owned(),
-            wrapper_path: self.wrapper_path.to_owned(),
-            full_path: self.full_path.to_owned(),
-            target_path: self.target_path.to_owned(),
+            name: self.skill.name.to_owned(),
+            entry_id: self.skill.entry_id.to_owned(),
+            wrapper_path: self.artifact_path(),
+            full_path: self.skill.template_path(),
+            target_path: self.target_path(),
             status: status.into(),
             changed,
         }
@@ -2104,26 +2030,14 @@ impl SkillWrapperSpec {
 
     fn claude_record(&self, status: impl Into<String>, changed: bool) -> SkillWrapperRecord {
         SkillWrapperRecord {
-            name: self.name.to_owned(),
-            entry_id: self.entry_id.to_owned(),
+            name: self.skill.name.to_owned(),
+            entry_id: self.skill.entry_id.to_owned(),
             wrapper_path: self.agent_skill_path().display().to_string(),
-            full_path: self.full_path.to_owned(),
+            full_path: self.skill.template_path(),
             target_path: self.claude_skill_path().display().to_string(),
             status: status.into(),
             changed,
         }
-    }
-
-    fn agent_skill_path(&self) -> PathBuf {
-        Path::new(AGENT_SKILL_ROOT).join(self.name)
-    }
-
-    fn claude_skill_path(&self) -> PathBuf {
-        Path::new(CLAUDE_SKILL_ROOT).join(self.name)
-    }
-
-    fn claude_link_source(&self) -> PathBuf {
-        Path::new("..").join("..").join(self.agent_skill_path())
     }
 }
 
@@ -2148,7 +2062,7 @@ fn write_skill_wrapper_target(target: &Path, content: &[u8]) -> Result<(), Comma
 }
 
 fn check_claude_skill_link(
-    root: &Path, source: &SkillWrapperSpec,
+    root: &Path, source: &BundledSkillWrapper<'_>,
 ) -> Result<&'static str, CommandError> {
     let target = root.join(source.claude_skill_path());
     let expected = source.claude_link_source();
@@ -2168,7 +2082,7 @@ fn check_claude_skill_link(
 }
 
 fn init_claude_skill_link(
-    root: &Path, source: &SkillWrapperSpec,
+    root: &Path, source: &BundledSkillWrapper<'_>,
 ) -> Result<&'static str, CommandError> {
     let target = root.join(source.claude_skill_path());
     let expected = source.claude_link_source();
@@ -2916,6 +2830,109 @@ mod tests {
     ) -> EntryIntrinsicFields {
         fields.into_iter().map(|(field, value)| (field.to_owned(), value.to_owned())).collect()
     }
+
+    // sirno:witness:agent-skills:begin
+    #[test]
+    fn skill_wrapper_installation_preserves_roster_and_excludes_resource_only_skills() {
+        let temp = tempfile::tempdir().unwrap();
+        let context = SurfaceContext::new(temp.path().join(CONFIG_FILE_NAME));
+
+        let installed = context.skill_wrappers_init().unwrap();
+
+        assert_eq!(
+            installed.records.iter().map(|record| record.name.as_str()).collect::<Vec<_>>(),
+            [
+                "sirno-editor",
+                "sirno-actualizer",
+                "sirno-internalizer",
+                "sirno-narrative-session",
+                "sirno-skill-synthesizer",
+                "sirno-curator",
+                "sirno-finalizer",
+            ]
+        );
+        for record in &installed.records {
+            assert_eq!(record.status, "wrote");
+            assert!(record.changed);
+            assert!(!record.wrapper_path.contains('\\'));
+            assert!(!record.full_path.contains('\\'));
+            assert!(!record.target_path.contains('\\'));
+            let artifact = Path::new(env!("CARGO_MANIFEST_DIR")).join(&record.wrapper_path);
+            assert_eq!(
+                fs::read(temp.path().join(&record.target_path)).unwrap(),
+                fs::read(artifact).unwrap()
+            );
+        }
+        assert!(!temp.path().join(".agents/skills/design-doc-writer").exists());
+        assert!(!temp.path().join(".claude").exists());
+        assert!(context.skill_wrappers_check().unwrap().ok);
+        let repeated = context.skill_wrappers_init().unwrap();
+        assert!(
+            repeated.records.iter().all(|record| record.status == "unchanged" && !record.changed)
+        );
+    }
+
+    #[test]
+    fn skill_wrapper_installation_repairs_drift_and_missing_packages() {
+        let temp = tempfile::tempdir().unwrap();
+        let context = SurfaceContext::new(temp.path().join(CONFIG_FILE_NAME));
+        let installed = context.skill_wrappers_init().unwrap();
+        let editor = temp.path().join(".agents/skills/sirno-editor/SKILL.md");
+        let expected_editor = fs::read(&editor).unwrap();
+        fs::write(&editor, "drifted wrapper").unwrap();
+        fs::remove_file(temp.path().join(".agents/skills/sirno-actualizer/SKILL.md")).unwrap();
+
+        let checked = context.skill_wrappers_check().unwrap();
+        assert!(!checked.ok);
+        assert_eq!(checked.records[0].status, "drifted");
+        assert_eq!(checked.records[1].status, "missing");
+
+        let repaired = context.skill_wrappers_init().unwrap();
+        assert!(repaired.ok);
+        assert_eq!(
+            repaired
+                .records
+                .iter()
+                .filter(|record| record.changed)
+                .map(|record| record.name.as_str())
+                .collect::<Vec<_>>(),
+            ["sirno-editor", "sirno-actualizer"]
+        );
+        assert_eq!(fs::read(editor).unwrap(), expected_editor);
+        assert!(context.skill_wrappers_check().unwrap().ok);
+        assert_eq!(repaired.records.len(), installed.records.len());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn skill_wrapper_claude_links_follow_installed_packages_and_repair_drift() {
+        let temp = tempfile::tempdir().unwrap();
+        let context = SurfaceContext::new(temp.path().join(CONFIG_FILE_NAME));
+        let installed = context.skill_wrappers_init_with_claude(true).unwrap();
+        assert_eq!(installed.records.len(), 14);
+        for record in &installed.records[7..] {
+            let link = temp.path().join(&record.target_path);
+            assert_eq!(
+                fs::read_link(&link).unwrap(),
+                Path::new("../../.agents/skills").join(&record.name)
+            );
+            assert_eq!(
+                fs::read(link.join("SKILL.md")).unwrap(),
+                fs::read(temp.path().join(&record.wrapper_path).join("SKILL.md")).unwrap()
+            );
+        }
+        assert!(!temp.path().join(".claude/skills/design-doc-writer").exists());
+        assert!(context.skill_wrappers_check_with_claude(true).unwrap().ok);
+
+        let editor_link = temp.path().join(".claude/skills/sirno-editor");
+        fs::remove_file(&editor_link).unwrap();
+        std::os::unix::fs::symlink("wrong-target", &editor_link).unwrap();
+        assert!(!context.skill_wrappers_check_with_claude(true).unwrap().ok);
+        let repaired = context.skill_wrappers_init_with_claude(true).unwrap();
+        assert_eq!(repaired.records.iter().filter(|record| record.changed).count(), 1);
+        assert!(context.skill_wrappers_check_with_claude(true).unwrap().ok);
+    }
+    // sirno:witness:agent-skills:end
 
     #[test]
     fn entry_new_requires_discovered_intrinsic_fields() {
