@@ -290,6 +290,22 @@ prerequisite = [
     "anchor",
 ]
 
+[entries.entry-retirement]
+fingerprint = "sha256:eb1d8e15ed0c4986a5aed92aa081601fefb58fd790b622524a4189cb3610b02b"
+belongs = [
+    "entry",
+    "lake-review",
+]
+prerequisite = [
+    "entry-lifecycle",
+    "witness",
+    "ripple",
+    "tide",
+    "anchor-file",
+    "deprecated",
+    "proposal",
+]
+
 [entries.extension-system]
 fingerprint = "sha256:98463f011a2a972d8beb0089201f1038cee06b3a4a37450dded9b22c583a4cfc"
 belongs = ["entry-artifact"]
