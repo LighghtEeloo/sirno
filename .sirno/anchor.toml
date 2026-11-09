@@ -291,17 +291,15 @@ prerequisite = [
 ]
 
 [entries.entry-retirement]
-fingerprint = "sha256:eb1d8e15ed0c4986a5aed92aa081601fefb58fd790b622524a4189cb3610b02b"
+fingerprint = "sha256:77e46f7f2dca20c78e72fbe0317e1bdbf757b29a8de874d52dd709a91e488c3e"
 belongs = [
     "entry",
     "lake-review",
 ]
 prerequisite = [
+    "observer",
     "entry-lifecycle",
     "witness",
-    "ripple",
-    "tide",
-    "anchor-file",
     "deprecated",
     "proposal",
 ]
@@ -637,6 +635,24 @@ prerequisite = [
     "interactive-narrative-session",
 ]
 refines = ["interactive-narrative-session"]
+
+[entries.observer]
+fingerprint = "sha256:8bf185db59dc5c237694e697a157ffc9b333c0ec32259473151512be00da9d51"
+belongs = ["lake-review"]
+prerequisite = [
+    "anchor-file",
+    "ripple",
+    "tide",
+    "tide-workitem",
+    "tide-resolution",
+    "structural-check",
+    "structural-edge-policy",
+    "meta-type",
+    "query",
+    "witness",
+    "transform",
+    "spell-invocation",
+]
 
 [entries.perspective-and-terms]
 fingerprint = "sha256:9635cedbf3940126d3635f6cee5817fae13101301e9bcba392cbb0feb8b510d5"
