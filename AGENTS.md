@@ -1,8 +1,5 @@
 # Repository Guidelines
 
-> `CLAUDE.md` is a symlink to this file. Do not edit `CLAUDE.md` directly -- edit `AGENTS.md` instead.
-
-
 ## Core Principles
 
 Prioritize a clean codebase and elegant design over compatibility or migration work.
