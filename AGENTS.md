@@ -51,6 +51,8 @@ The skill carries the detailed Rust standards.
 ## Version Control
 
 This project uses git. Use git to operate.
+Commits are GPG-signed. If signing fails because a sandbox blocks `~/.gnupg`,
+rerun `git commit` outside the sandbox rather than disabling signing.
 
 ### Commit Message Convention
 
